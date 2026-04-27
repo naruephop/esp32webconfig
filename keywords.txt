@@ -1,0 +1,75 @@
+# Keywords for ESP32 Web Config Library
+
+# Syntax Highlighting for Arduino IDE
+
+# Classes
+Button	KEYWORD1
+Configsettings	KEYWORD1
+MQTTConfig	KEYWORD1
+MySerialConfig	KEYWORD1
+ModbusConfig	KEYWORD1
+DeviceInfo	KEYWORD1
+NetworkConfig	KEYWORD1
+WLANConfig	KEYWORD1
+WebServer	KEYWORD1
+
+# Button Events
+NONE	LITERAL1
+PRESS	LITERAL1
+RELEASE	LITERAL1
+CLICK_1	LITERAL1
+CLICK_2	LITERAL1
+CLICK_3	LITERAL1
+LONG_1	LITERAL1
+LONG_2	LITERAL1
+LONG_3	LITERAL1
+
+# Functions
+handleRoot	KEYWORD2
+handleLoginForm	KEYWORD2
+handleLogin	KEYWORD2
+handleLoad	KEYWORD2
+handleSave	KEYWORD2
+handleUpdate	KEYWORD2
+handleUpdateForm	KEYWORD2
+handleSpiffsUpdateForm	KEYWORD2
+handleSpiffsUpdate	KEYWORD2
+handleFileManager	KEYWORD2
+handleFileList	KEYWORD2
+handleDownloadFile	KEYWORD2
+handleDeleteFile	KEYWORD2
+handleFileUploadPage	KEYWORD2
+handleFileUpload	KEYWORD2
+handleScanWiFi	KEYWORD2
+handleCheckToken	KEYWORD2
+saveSettings	KEYWORD2
+loadSettings	KEYWORD2
+startConfigPortal	KEYWORD2
+stopConfigPortal	KEYWORD2
+initWiFi	KEYWORD2
+updateStatusLed	KEYWORD2
+applyStatusLed	KEYWORD2
+startEthernet	KEYWORD2
+reconnectMQTT	KEYWORD2
+network_switching	KEYWORD2
+genToken	KEYWORD2
+
+# Global Variables
+Config	KEYWORD1
+server	KEYWORD1
+myActiveToken	KEYWORD1
+configPortalEnabled	KEYWORD1
+showDeviceInfo	KEYWORD1
+showMQTTConfig	KEYWORD1
+showLanSettings	KEYWORD1
+showWlanSettings	KEYWORD1
+showSerialSettings	KEYWORD1
+showModbusSettings	KEYWORD1
+
+# Struct Members
+device	KEYWORD1
+mqtt	KEYWORD1
+lan	KEYWORD1
+wlan	KEYWORD1
+serial	KEYWORD1
+modbus	KEYWORD1
