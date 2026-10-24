@@ -5,6 +5,8 @@
  * Adjust RX/TX pins below to match your board wiring.
  */
 
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+
 #include <ESP32WebConfigApp.h>
 
 ESP32WebConfigApp app;

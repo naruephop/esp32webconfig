@@ -1,0 +1,24 @@
+.DS_Store
+
+# Arduino / ESP32 build output
+build/
+dist/
+*.bin
+*.elf
+*.hex
+*.map
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# IDE settings
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*

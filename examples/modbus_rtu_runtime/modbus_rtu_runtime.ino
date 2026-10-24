@@ -7,6 +7,8 @@
  * Adjust RX/TX pins and RS485 direction pin to match your hardware.
  */
 
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+
 #include <ESP32WebConfigApp.h>
 
 ESP32WebConfigApp app;

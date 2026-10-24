@@ -5,6 +5,8 @@
  * Read Holding Registers request over WiFi.
  */
 
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+
 #include <ESP32WebConfigApp.h>
 #include <WiFi.h>
 

@@ -5,6 +5,8 @@
  * Adjust TX/RX pins to match your transceiver wiring.
  */
 
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+
 #include <ESP32WebConfigApp.h>
 #include <driver/twai.h>
 

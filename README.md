@@ -1,27 +1,36 @@
-# ไลบรารี ESP32 Web Configuration
+# ESP32 Web Config
 
-ไลบรารี Arduino สำหรับ ESP32 ที่ใช้สร้างหน้าเว็บสำหรับตั้งค่าอุปกรณ์ โดยออกแบบเป็น API แบบ class เพื่อให้เรียกใช้งานได้ง่ายขึ้น
+ไลบรารี Arduino สำหรับสร้างหน้าเว็บตั้งค่า ESP32 จากอุปกรณ์โดยตรง รองรับ Wi‑Fi, Ethernet, MQTT, Serial, Modbus และ CAN Bus โดยจัดเก็บค่าตั้งค่าไว้ใน SPIFFS
 
-## คุณสมบัติ
+หน้าเว็บปัจจุบันเป็นฟอร์มตั้งค่าแบบ responsive พร้อมสถานะ Ethernet แบบ real-time สำหรับ IP, Subnet Mask, Gateway และ DNS ที่ได้รับจาก DHCP
 
-- หน้าเว็บสำหรับตั้งค่าอุปกรณ์
-- ระบบล็อกอินด้วย token
-- บันทึกค่าตั้งค่าลงใน SPIFFS
-- หน้าตั้งค่า MQTT, WiFi, Serial, Modbus และ CAN Bus
-- รองรับเส้นทาง OTA update แบบเลือกเปิดหรือปิดได้
-- รองรับเส้นทางอัปเดต SPIFFS แบบเลือกเปิดหรือปิดได้
-- รองรับ file manager แบบเลือกเปิดหรือปิดได้
-- รองรับการสแกน WiFi แบบเลือกเปิดหรือปิดได้
-- รองรับปุ่ม config และไฟแสดงสถานะ
+## ความสามารถ
 
-## API ปัจจุบัน
+- Config portal แบบ AP พร้อม login token
+- บันทึก/โหลดการตั้งค่าจาก SPIFFS
+- Wi‑Fi DHCP หรือ Static IP และสแกน Wi‑Fi
+- Ethernet LAN8720 (RMII) หรือ W5500 (SPI)
+- สถานะ LAN ปัจจุบันและ DHCP lease บนหน้าเว็บ
+- MQTT ผ่าน network ที่พร้อมใช้งาน
+- Serial, Modbus TCP / RTU และ CAN Bus sections
+- OTA firmware, SPIFFS update และ file manager (เปิด/ปิดได้)
 
-จุดเริ่มต้นหลักของไลบรารีคือ `ESP32WebConfigApp`
+## ข้อกำหนด
 
-ตัวอย่าง sketch แบบพื้นฐาน:
+- Arduino-ESP32 core 3.x
+- `ArduinoJson`
+- `PubSubClient`
+
+ติดตั้งไลบรารีนี้ไว้ใน Arduino `libraries` directory แล้วเปิด Arduino IDE ใหม่ หรือเพิ่มเป็น local library ของ PlatformIO
+
+## เริ่มต้นใช้งาน
+
+ตัวอย่างพื้นฐานด้านล่างเหมาะกับ ESP32-S3: ปิด config button ไว้ก่อน เพราะ GPIO26 อาจเป็นขา Flash/PSRAM บนบางบอร์ด
 
 ```cpp
-#include "src/ESP32WebConfigApp.h"
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+
+#include <ESP32WebConfigApp.h>
 
 ESP32WebConfigApp app;
 
@@ -34,25 +43,25 @@ void loop() {
 }
 ```
 
-ดูตัวอย่างเพิ่มเติมได้ที่:
+หลังบูต อุปกรณ์จะเปิด AP ชื่อ `ESP32_MQTT_Config` แล้วเข้าหน้าเว็บที่ `192.168.4.1`
 
-- `examples/esp32webconfig/esp32webconfig.ino`
-- `examples/custom_settings/custom_settings.ino`
-- `examples/minimal_features/minimal_features.ino`
-- `examples/custom_button_led/custom_button_led.ino`
-- `examples/ethernet_lan_enabled/ethernet_lan_enabled.ino`
-- `examples/mqtt_serial_focus/mqtt_serial_focus.ino`
-- `examples/serial_runtime/serial_runtime.ino`
-- `examples/modbus_rtu_runtime/modbus_rtu_runtime.ino`
-- `examples/modbus_tcp_runtime/modbus_tcp_runtime.ino`
-- `examples/canbus_twai_runtime/canbus_twai_runtime.ino`
-- `examples/status_led_disabled/status_led_disabled.ino`
+| ค่าเริ่มต้น | ค่า |
+| --- | --- |
+| AP SSID | `ESP32_MQTT_Config` |
+| AP password | `12345678` |
+| Username | `admin` |
+| Password | `admin123` |
+| Status LED | GPIO 2, active HIGH |
 
-## การตั้งค่าแบบกำหนดเอง
+เปลี่ยน credentials ก่อนใช้งานจริงเสมอ
 
-สามารถส่งอ็อบเจ็กต์ `ESP32WebConfigAppSettings` ตอนสร้าง app เพื่อกำหนดค่าเองได้
+## ตั้งค่าแอปเอง
+
+กำหนดชื่ออุปกรณ์, credentials, LED และปุ่มได้ผ่าน `ESP32WebConfigAppSettings`
 
 ```cpp
+#define ESP32WC_FEATURE_CONFIG_BUTTON 1
+
 #include <ESP32WebConfigApp.h>
 
 ESP32WebConfigAppSettings settings;
@@ -60,14 +69,17 @@ ESP32WebConfigApp* app = nullptr;
 
 void setup() {
   settings.apSsid = "MyESP32Config";
-  settings.apPass = "87654321";
+  settings.apPass = "change-me";
   settings.username = "admin";
-  settings.password = "secret123";
-  settings.deviceName = "ESP32_Custom_Config";
-  settings.firmwareVersion = "2.0.0";
+  settings.password = "change-me";
+  settings.deviceName = "ESP32_Controller";
+  settings.firmwareVersion = "1.0.0";
+
+  // เลือก GPIO ที่ปลอดภัยตามบอร์ดของคุณ
   settings.configButtonPin = 0;
+  settings.configButtonUsePullup = true;
   settings.statusLedPin = 2;
-  settings.statusLedActiveLevel = LOW;
+  settings.statusLedActiveLevel = HIGH;
 
   static ESP32WebConfigApp appInstance(settings);
   app = &appInstance;
@@ -79,131 +91,133 @@ void loop() {
 }
 ```
 
-## การเปิดหรือปิดฟีเจอร์
+> ห้ามใช้ GPIO26 เป็นปุ่มบน ESP32-S3 ที่ใช้ OPI Flash/PSRAM เพราะอาจทำให้เครื่อง reset วน
 
-สามารถกำหนด feature flags ได้ก่อน include `ESP32WebConfigApp.h`
+## Ethernet
 
-ตัวอย่าง:
+Ethernet เริ่มทำงานแบบ asynchronous: ระบบจะรอ `ETH.hasIP()` ก่อนถือว่า LAN พร้อมใช้งาน จึงไม่บันทึกค่า `0.0.0.0` ระหว่าง DHCP กำลังทำงาน
+
+### W5500 ผ่าน SPI
+
+กำหนด macros ก่อน include header:
 
 ```cpp
-#define ESP32WC_FEATURE_FILE_MANAGER 0
-#define ESP32WC_FEATURE_SPIFFS_UPDATE 0
-#define ESP32WC_FEATURE_WIFI_SCAN 0
-#define ESP32WC_SECTION_LAN 0
+#define ESP32WC_SECTION_LAN 1
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+#define ESP32WC_ETHERNET_TYPE ESP32WC_ETHERNET_W5500
+
+#define ESP32WC_W5500_SCK_PIN  18
+#define ESP32WC_W5500_MISO_PIN 19
+#define ESP32WC_W5500_MOSI_PIN 23
+#define ESP32WC_W5500_CS_PIN   5
+#define ESP32WC_W5500_INT_PIN  -1
+#define ESP32WC_W5500_RST_PIN  -1
+#define ESP32WC_W5500_SPI_FREQ_MHZ 20
 
 #include <ESP32WebConfigApp.h>
 ```
 
-รายการ macro สำหรับฟีเจอร์:
-
-- `ESP32WC_FEATURE_CONFIG_BUTTON`
-- `ESP32WC_FEATURE_STATUS_LED`
-- `ESP32WC_FEATURE_SERIAL_LOG`
-- `ESP32WC_FEATURE_PRINT_CONFIG`
-- `ESP32WC_FEATURE_WIFI_SCAN`
-- `ESP32WC_FEATURE_OTA`
-- `ESP32WC_FEATURE_SPIFFS_UPDATE`
-- `ESP32WC_FEATURE_FILE_MANAGER`
-
-รายการ macro สำหรับ section:
-
-- `ESP32WC_SECTION_DEVICE_INFO`
-- `ESP32WC_SECTION_MQTT`
-- `ESP32WC_SECTION_LAN`
-- `ESP32WC_SECTION_WLAN`
-- `ESP32WC_SECTION_SERIAL`
-- `ESP32WC_SECTION_MODBUS`
-- `ESP32WC_SECTION_CANBUS`
-
-ค่าเริ่มต้นของ macro ต่าง ๆ อยู่ใน `src/ESP32WebConfig.h`
-
-## โครงสร้างข้อมูลการตั้งค่า
-
-ไลบรารีใช้โครงสร้างกลางชื่อ `Configsettings`
+ภายในไลบรารีใช้ API ปัจจุบันของ Arduino-ESP32:
 
 ```cpp
-struct Configsettings {
-  DeviceInfo device;
-  MQTTConfig mqtt;
-  NetworkConfig lan;
-  WLANConfig wlan;
-  MySerialConfig serial;
-  ModbusConfig modbus;
-  CanbusConfig canbus;
-};
+SPI.begin(SCK, MISO, MOSI);
+ETH.begin(ETH_PHY_W5500, phyAddr, cs, irq, rst, SPI, spiFreq);
 ```
 
-## ค่าพื้นฐานเริ่มต้น
+### ESP32-S3-ETH พร้อม W5500
 
-- AP SSID: `ESP32_MQTT_Config`
-- AP password: `12345678`
-- Username: `admin`
-- Password: `admin123`
-- ขา config button: `GPIO 26`
-- ขา status LED: `GPIO 23`
+สำหรับบอร์ดที่ใช้ W5500 onboard ตาม pinout นี้:
 
-## Web Routes
+| Signal | GPIO |
+| --- | --- |
+| MOSI | 11 |
+| MISO | 12 |
+| SCK | 13 |
+| CS | 14 |
+| INT | 10 |
+| RST | 9 |
 
-เส้นทางที่เปิดใช้งานเสมอ:
+ใช้ [examples/ethernet_w5500_esp32s3_eth/ethernet_w5500_esp32s3_eth.ino](examples/ethernet_w5500_esp32s3_eth/ethernet_w5500_esp32s3_eth.ino)
 
-- `/`
-- `/login`
-- `/load`
-- `/save`
-- `/check_token`
+### LAN8720 ผ่าน RMII
 
-เส้นทางที่เปิดหรือปิดได้ตาม feature flag:
+LAN8720 รองรับเฉพาะ ESP32 target ที่มี RMII EMAC (เช่น ESP32 รุ่นดั้งเดิม) ไม่รองรับ ESP32-S2/S3/C3/C6 หากใช้ target ที่ไม่มี EMAC ระบบจะข้าม LAN8720 และ fallback ไป Wi‑Fi อย่างปลอดภัย
 
-- `/update`
-- `/update-spiffs`
-- `/file-manager`
-- `/file-list`
-- `/download-file`
-- `/delete-file`
-- `/upload`
-- `/scan_wifi`
+ค่าเริ่มต้น LAN8720:
 
-## Dependencies
+| Signal | GPIO |
+| --- | --- |
+| MDC | 23 |
+| MDIO | 18 |
+| Clock | GPIO0 input |
 
-ไลบรารีที่จำเป็น:
+ปรับได้ด้วย `ESP32WC_ETH_PHY_TYPE`, `ESP32WC_ETH_PHY_ADDR`, `ESP32WC_ETH_MDC_PIN`, `ESP32WC_ETH_MDIO_PIN`, `ESP32WC_ETH_POWER_PIN` และ `ESP32WC_ETH_CLOCK_MODE`
 
-- `ArduinoJson`
+## Feature flags
 
-ไลบรารีจาก ESP32 core ที่มีการใช้งาน:
+กำหนดก่อน include `ESP32WebConfigApp.h`
 
-- `WiFi`
-- `WebServer`
-- `FS`
-- `SPIFFS`
-- `Update`
+```cpp
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
+#define ESP32WC_FEATURE_FILE_MANAGER 0
+#define ESP32WC_FEATURE_SPIFFS_UPDATE 0
+#define ESP32WC_FEATURE_WIFI_SCAN 0
+#define ESP32WC_FEATURE_OTA 0
 
-หมายเหตุ:
+#define ESP32WC_SECTION_LAN 0
+#define ESP32WC_SECTION_CANBUS 0
+```
 
-- ใน `library.properties` ยังมีการระบุ `PubSubClient` และ `Ethernet` เป็น dependency ด้วย
+### Features
 
-## การติดตั้ง
+`ESP32WC_FEATURE_CONFIG_BUTTON`, `ESP32WC_FEATURE_STATUS_LED`, `ESP32WC_FEATURE_SERIAL_LOG`, `ESP32WC_FEATURE_PRINT_CONFIG`, `ESP32WC_FEATURE_WIFI_SCAN`, `ESP32WC_FEATURE_OTA`, `ESP32WC_FEATURE_SPIFFS_UPDATE`, `ESP32WC_FEATURE_FILE_MANAGER`
 
-1. คัดลอกโฟลเดอร์นี้ไปไว้ในโฟลเดอร์ `libraries` ของ Arduino
-2. รีสตาร์ต Arduino IDE หรือ reload environment ที่ใช้งาน
-3. ติดตั้ง `ArduinoJson` หากยังไม่มี
-4. หากใช้งาน MQTT หรือ Ethernet ให้ติดตั้ง `PubSubClient` และ `Ethernet` เพิ่มด้วย
+### UI sections
 
-## หมายเหตุเพิ่มเติม
+`ESP32WC_SECTION_DEVICE_INFO`, `ESP32WC_SECTION_MQTT`, `ESP32WC_SECTION_LAN`, `ESP32WC_SECTION_WLAN`, `ESP32WC_SECTION_SERIAL`, `ESP32WC_SECTION_MODBUS`, `ESP32WC_SECTION_CANBUS`
 
-- โค้ดชุดนี้ถูกปรับจากโครงสร้างแบบเก่าใน `web.h` มาเป็นรูปแบบที่แยกส่วนมากขึ้น
-- แม้ภายนอกจะใช้งานผ่าน class แต่ภายในบาง handler ยังใช้ shared global state เพื่อให้เข้ากันได้กับโค้ดเดิม
-- มีการอ้างอิง logic จากโฟลเดอร์ `old` สำหรับส่วน network, MQTT และพฤติกรรมหน้า config บางส่วน
+## Web routes
 
-## ตัวอย่างการใช้งาน
+| Route | หน้าที่ |
+| --- | --- |
+| `/` | หน้า config หลัก |
+| `/login`, `/logout` | จัดการ session |
+| `/load`, `/save` | โหลดและบันทึก config |
+| `/network-status` | สถานะ LAN ปัจจุบัน |
+| `/scan_wifi` | สแกน Wi‑Fi (เมื่อเปิด feature) |
+| `/update` | OTA firmware (เมื่อเปิด feature) |
+| `/update-spiffs` | อัปเดต SPIFFS (เมื่อเปิด feature) |
+| `/file-manager` | จัดการไฟล์ (เมื่อเปิด feature) |
 
-- `examples/esp32webconfig/esp32webconfig.ino`: ตัวอย่างแบบพื้นฐาน
-- `examples/custom_settings/custom_settings.ino`: ตัวอย่างการเปลี่ยน credentials, pin และ feature flags
-- `examples/minimal_features/minimal_features.ino`: ตัวอย่างแบบเปิดเฉพาะฟีเจอร์ที่จำเป็น
-- `examples/custom_button_led/custom_button_led.ino`: ตัวอย่างการเปลี่ยนขาปุ่มและไฟแสดงสถานะ
-- `examples/ethernet_lan_enabled/ethernet_lan_enabled.ino`: ตัวอย่างการเปิดใช้งาน LAN/W5500
-- `examples/mqtt_serial_focus/mqtt_serial_focus.ino`: ตัวอย่างที่เน้น MQTT, Serial และ Modbus
-- `examples/serial_runtime/serial_runtime.ino`: ตัวอย่างการเปิด `Serial2` จากค่าที่ตั้งในหน้าเว็บ
-- `examples/modbus_rtu_runtime/modbus_rtu_runtime.ino`: ตัวอย่าง Modbus RTU แบบ raw frame ผ่าน RS485
-- `examples/modbus_tcp_runtime/modbus_tcp_runtime.ino`: ตัวอย่าง Modbus TCP แบบ raw frame ผ่าน WiFi
-- `examples/canbus_twai_runtime/canbus_twai_runtime.ino`: ตัวอย่าง CAN Bus ด้วย TWAI ของ ESP32
-- `examples/status_led_disabled/status_led_disabled.ino`: ตัวอย่างปิดฟีเจอร์ `STATUS_LED`
+## Examples
+
+| Example | ใช้สำหรับ |
+| --- | --- |
+| [esp32webconfig](examples/esp32webconfig/esp32webconfig.ino) | เริ่มต้นแบบปลอดภัยบน ESP32-S3 |
+| [custom_settings](examples/custom_settings/custom_settings.ino) | กำหนด credentials, pin และ timing |
+| [custom_button_led](examples/custom_button_led/custom_button_led.ino) | ปุ่มและ LED แบบกำหนดเอง |
+| [minimal_features](examples/minimal_features/minimal_features.ino) | ลด feature เพื่อใช้ flash น้อยลง |
+| [ethernet_lan_enabled](examples/ethernet_lan_enabled/ethernet_lan_enabled.ino) | LAN8720 บน ESP32 ที่มี EMAC |
+| [ethernet_w5500_enabled](examples/ethernet_w5500_enabled/ethernet_w5500_enabled.ino) | W5500 pinout แบบ ESP32 DevKit |
+| [ethernet_w5500_esp32s3_eth](examples/ethernet_w5500_esp32s3_eth/ethernet_w5500_esp32s3_eth.ino) | W5500 onboard บน ESP32-S3-ETH |
+| [mqtt_serial_focus](examples/mqtt_serial_focus/mqtt_serial_focus.ino) | MQTT, Wi‑Fi, Serial และ Modbus |
+| [serial_runtime](examples/serial_runtime/serial_runtime.ino) | ใช้ Serial2 ตามค่าบนเว็บ |
+| [modbus_rtu_runtime](examples/modbus_rtu_runtime/modbus_rtu_runtime.ino) | Modbus RTU ผ่าน RS485 |
+| [modbus_tcp_runtime](examples/modbus_tcp_runtime/modbus_tcp_runtime.ino) | Modbus TCP |
+| [canbus_twai_runtime](examples/canbus_twai_runtime/canbus_twai_runtime.ino) | CAN Bus/TWAI |
+
+## โครงสร้างข้อมูล
+
+ค่าปัจจุบันอยู่ใน global `Config`:
+
+```cpp
+Config.device
+Config.mqtt
+Config.lan
+Config.wlan
+Config.serial
+Config.modbus
+Config.canbus
+```
+
+ตัวอย่าง runtime สามารถอ่านค่าเหล่านี้หลังเรียก `app.setup()` เพื่อใช้กับ protocol หรือ I/O ของตัวเองได้

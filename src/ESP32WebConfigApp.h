@@ -40,7 +40,7 @@ struct ESP32WebConfigAppSettings {
   const char* firmwareVersion = "1.0.0";
   const char* deviceName = "ESP32_MQTT_Config";
   uint8_t configButtonPin = 26;
-  uint8_t statusLedPin = 23;
+  uint8_t statusLedPin = 2;
   bool configButtonUsePullup = true;
   uint8_t statusLedActiveLevel = HIGH;
   unsigned long configLedFastBlinkMs = 150;
@@ -200,6 +200,7 @@ private:
     server.on("/login", HTTP_POST, handleLogin);
     server.on("/logout", HTTP_POST, handleLogout);
     server.on("/load", HTTP_GET, handleLoad);
+    server.on("/network-status", HTTP_GET, handleNetworkStatus);
     server.on("/save", HTTP_POST, handleSave);
 #if ESP32WC_FEATURE_OTA
     server.on("/update", HTTP_GET, handleUpdateForm);

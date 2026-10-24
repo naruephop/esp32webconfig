@@ -6,6 +6,7 @@
  */
 
 #define ESP32WC_FEATURE_STATUS_LED 0
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
 
 #include <ESP32WebConfigApp.h>
 

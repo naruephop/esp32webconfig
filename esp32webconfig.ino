@@ -4,9 +4,11 @@
  * Edit the values below to match your board and desired portal behavior.
  */
 
-#define ESP32WC_FEATURE_CONFIG_BUTTON 1
+// GPIO26 is used by the ESP32-S3 OPI flash/PSRAM on this board, so do not
+// configure it as a button. Enable this only after assigning a safe GPIO.
+#define ESP32WC_FEATURE_CONFIG_BUTTON 0
 #define ESP32WC_FEATURE_STATUS_LED 1
-#define ESP32WC_FEATURE_SERIAL_LOG 1
+#define ESP32WC_FEATURE_SERIAL_LOG 0
 #define ESP32WC_FEATURE_PRINT_CONFIG 1
 #define ESP32WC_FEATURE_WIFI_SCAN 1
 #define ESP32WC_FEATURE_OTA 1
@@ -15,11 +17,22 @@
 
 #define ESP32WC_SECTION_DEVICE_INFO 1
 #define ESP32WC_SECTION_MQTT 1
-#define ESP32WC_SECTION_LAN 0
+#define ESP32WC_SECTION_LAN 1
 #define ESP32WC_SECTION_WLAN 1
 #define ESP32WC_SECTION_SERIAL 1
 #define ESP32WC_SECTION_MODBUS 1
 #define ESP32WC_SECTION_CANBUS 1
+
+// ESP32-S3-ETH onboard W5500 pinout.
+// W5500: MOSI=11, MISO=12, SCK=13, CS=14, INT=10, RST=9.
+#define ESP32WC_ETHERNET_TYPE ESP32WC_ETHERNET_W5500
+#define ESP32WC_W5500_SCK_PIN 13
+#define ESP32WC_W5500_MISO_PIN 12
+#define ESP32WC_W5500_MOSI_PIN 11
+#define ESP32WC_W5500_CS_PIN 14
+#define ESP32WC_W5500_INT_PIN 10
+#define ESP32WC_W5500_RST_PIN 9
+#define ESP32WC_W5500_SPI_FREQ_MHZ 20
 
 #include "src/ESP32WebConfigApp.h"
 
@@ -34,8 +47,8 @@ void configureApp() {
   settings.deviceName = "ESP32_MQTT_Config";
   settings.firmwareVersion = "1.0.0";
 
-  settings.configButtonPin = 26;
-  settings.statusLedPin = 23;
+  settings.configButtonPin = 46;
+  settings.statusLedPin = 2;
   settings.configButtonUsePullup = true;
   settings.statusLedActiveLevel = HIGH;
 

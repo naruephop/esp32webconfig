@@ -2,57 +2,321 @@
 #include "WebHandlers.h"
 
 // ===== AUTHENTICATION & LOGIN =====
+#include <ETH.h>
+
 void handleLoginForm(){
   if (!requireConfigPortalPage()) return;
   server.sendHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   server.sendHeader("Pragma", "no-cache");
   server.sendHeader("Expires", "0");
   server.send(200,"text/html", R"rawliteral(<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Login - ESP32 Config</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 Control Center</title>
 <style>
-body {font-family: Arial;background: #f4f4f4;color: #333;text-align: center;margin: 0;padding: 0;}
-#loginBox {margin: 90px auto 0;padding: 30px 24px;background: #fff;border-radius: 10px;box-shadow: 0 0 16px rgba(0,0,0,0.13);max-width: 320px;}
-input {width: 90%;padding: 8px;margin: 10px 0;border-radius: 5px;border: 1px solid #bbb;}
-button {width: 100%;padding: 10px;background: #007bff;color: #fff;border: none;border-radius: 5px;cursor: pointer;}
-button:hover {background: #0056b3;}
-.login-error {color: #c00;font-size: 14px;margin-top: 8px;display: none;}
+:root {
+  --bg: #f3efe6;
+  --panel: rgba(255,255,255,0.9);
+  --panel-strong: #ffffff;
+  --text: #1d2935;
+  --muted: #667585;
+  --line: rgba(29,41,53,0.12);
+  --primary: #14532d;
+  --primary-strong: #0f3f23;
+  --accent: #c98b2c;
+  --danger: #b42318;
+  --shadow: 0 24px 80px rgba(24,39,52,0.16);
+  --radius: 24px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(201,139,44,0.18), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(20,83,45,0.14), transparent 30%),
+    linear-gradient(135deg, #f7f2ea 0%, #eef3f0 100%);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.shell {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.4);
+  backdrop-filter: blur(10px);
+}
+.hero {
+  padding: 48px;
+  background:
+    linear-gradient(160deg, rgba(20,83,45,0.97), rgba(15,63,35,0.9)),
+    linear-gradient(135deg, #14532d, #0f3f23);
+  color: #f6f7f5;
+  position: relative;
+}
+.hero:before,
+.hero:after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+.hero:before {
+  width: 240px;
+  height: 240px;
+  top: -80px;
+  right: -40px;
+}
+.hero:after {
+  width: 160px;
+  height: 160px;
+  left: -30px;
+  bottom: -40px;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hero h1 {
+  margin: 24px 0 12px;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.02;
+}
+.hero p {
+  margin: 0;
+  max-width: 460px;
+  color: rgba(246,247,245,0.82);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+.metric {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.metric strong {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.metric span {
+  color: rgba(246,247,245,0.74);
+  font-size: 13px;
+}
+.panel {
+  padding: 40px 34px;
+  background: rgba(255,255,255,0.86);
+}
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+.panel p {
+  margin: 0 0 28px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.field {
+  margin-bottom: 16px;
+}
+.field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.field input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.96);
+  font-size: 15px;
+  color: var(--text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.field input:focus {
+  outline: none;
+  border-color: rgba(20,83,45,0.48);
+  box-shadow: 0 0 0 4px rgba(20,83,45,0.12);
+}
+button {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 15px 18px;
+  background: linear-gradient(135deg, var(--primary), #1c6b3a);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  box-shadow: 0 16px 32px rgba(20,83,45,0.22);
+}
+button:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, var(--primary-strong), var(--primary));
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+.login-error,
+.status {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  display: none;
+}
+.login-error {
+  color: var(--danger);
+  background: rgba(180,35,24,0.08);
+  border: 1px solid rgba(180,35,24,0.18);
+}
+.status {
+  color: var(--primary-strong);
+  background: rgba(20,83,45,0.08);
+  border: 1px solid rgba(20,83,45,0.14);
+}
+.footer-note {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 860px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .hero,
+  .panel {
+    padding: 32px 24px;
+  }
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
 <body>
-<div id="loginBox">
-<h2>Login</h2>
-<form id="loginForm" onsubmit="return loginSubmit(event)">
-<input type="text" id="loginUser" placeholder="Username" required>
-<input type="password" id="loginPass" placeholder="Password" required>
-<button type="submit">Login</button>
-<div id="loginError" class="login-error">Invalid username or password</div>
-</form>
+<div class="shell">
+  <section class="hero">
+    <div class="eyebrow">Embedded Device Management</div>
+    <h1>ESP32 Control Center</h1>
+    <p>Secure access to your on-device configuration portal for WiFi, MQTT, serial communication, industrial protocols, and maintenance tools.</p>
+    <div class="hero-grid">
+      <div class="metric">
+        <strong>WiFi</strong>
+        <span>Provision network settings from one place</span>
+      </div>
+      <div class="metric">
+        <strong>OTA</strong>
+        <span>Update firmware and filesystem in-browser</span>
+      </div>
+      <div class="metric">
+        <strong>I/O</strong>
+        <span>Manage MQTT, Modbus, CAN Bus, and Serial</span>
+      </div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Sign in</h2>
+    <p>Use the device credentials configured in your firmware settings to continue.</p>
+    <form id="loginForm" onsubmit="return loginSubmit(event)">
+      <div class="field">
+        <label for="loginUser">Username</label>
+        <input type="text" id="loginUser" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" required>
+      </div>
+      <button id="loginButton" type="submit">Open Control Center</button>
+      <div id="loginStatus" class="status">Checking credentials...</div>
+      <div id="loginError" class="login-error">Invalid username or password. Please try again.</div>
+    </form>
+    <div class="footer-note">
+      This page is served directly from the ESP32 device. Session access is stored in the current browser only.
+    </div>
+  </section>
 </div>
 <script>
+function setBusy(isBusy) {
+  document.getElementById('loginButton').disabled = isBusy;
+  document.getElementById('loginStatus').style.display = isBusy ? 'block' : 'none';
+}
+
 async function loginSubmit(e) {
-e.preventDefault();
-const data = {user: document.getElementById('loginUser').value, pass: document.getElementById('loginPass').value};
-const response = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});
-const result = await response.json();
-if (result.success && result.token) {
-sessionStorage.setItem("esp32_token", result.token);
-window.location.href = "/";
-} else {
-document.getElementById('loginError').style.display = "block";
+  e.preventDefault();
+  document.getElementById('loginError').style.display = 'none';
+  setBusy(true);
+  const data = {
+    user: document.getElementById('loginUser').value,
+    pass: document.getElementById('loginPass').value
+  };
+  try {
+    const response = await fetch('/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (result.success && result.token) {
+      sessionStorage.setItem('esp32_token', result.token);
+      window.location.href = '/';
+      return false;
+    }
+  } catch (error) {
+  }
+  document.getElementById('loginError').style.display = 'block';
+  setBusy(false);
+  return false;
 }
-}
+
 async function validateExistingToken() {
-const token = sessionStorage.getItem("esp32_token");
-if (!token) return;
-const response = await fetch('/check_token', {headers: {'Authorization': 'Bearer ' + token}});
-if (response.ok) {
-window.location.href = "/";
-return;
+  const token = sessionStorage.getItem('esp32_token');
+  if (!token) return;
+  setBusy(true);
+  try {
+    const response = await fetch('/check_token', {
+      headers: {'Authorization': 'Bearer ' + token}
+    });
+    if (response.ok) {
+      window.location.href = '/';
+      return;
+    }
+  } catch (error) {
+  }
+  sessionStorage.removeItem('esp32_token');
+  setBusy(false);
 }
-sessionStorage.removeItem("esp32_token");
-}
+
 validateExistingToken();
 </script>
 </body>
@@ -160,6 +424,22 @@ void handleLoad() {
   doc["canbusBaud"] = Config.canbus.canbusBaud;
 #endif
   
+  String json;
+  serializeJson(doc, json);
+  server.send(200, "application/json", json);
+}
+
+void handleNetworkStatus() {
+  if (!requireConfigPortalJson() || !requireAuthorizationJson()) return;
+
+  DynamicJsonDocument doc(384);
+  const bool lanConnected = ETH.hasIP();
+  doc["lanConnected"] = lanConnected;
+  doc["lanIp"] = lanConnected ? ETH.localIP().toString() : "";
+  doc["lanSubnet"] = lanConnected ? ETH.subnetMask().toString() : "";
+  doc["lanGateway"] = lanConnected ? ETH.gatewayIP().toString() : "";
+  doc["lanDns"] = lanConnected ? ETH.dnsIP().toString() : "";
+
   String json;
   serializeJson(doc, json);
   server.send(200, "application/json", json);
@@ -581,75 +861,313 @@ void handleCheckToken() {
 void handleRoot() {
   if (!requireConfigPortalPage()) return;
   server.send(200, "text/html", R"rawliteral(<!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>MQTT Configuration</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP32 Control Center</title>
     <style>
+      :root {
+        --bg: #efe8db;
+        --surface: rgba(255,255,255,0.92);
+        --surface-strong: #ffffff;
+        --surface-muted: #f6f1e8;
+        --ink: #1f2933;
+        --muted: #6b7785;
+        --line: rgba(31,41,51,0.12);
+        --primary: #14532d;
+        --primary-strong: #0f3f23;
+        --primary-soft: rgba(20,83,45,0.08);
+        --accent: #c98b2c;
+        --danger: #b42318;
+        --shadow: 0 20px 60px rgba(25,39,53,0.12);
+        --radius-lg: 28px;
+        --radius-md: 18px;
+        --radius-sm: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 20px;
-        background-color: #f4f4f4;
-        color: #333;
+        font-family: "Segoe UI", Arial, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(201,139,44,0.18), transparent 24%),
+          radial-gradient(circle at bottom right, rgba(20,83,45,0.14), transparent 30%),
+          linear-gradient(135deg, #f7f3ec 0%, #edf3ef 100%);
       }
-      form {
-        display: inline-block;
-        text-align: left;
-        background: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      .page {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 28px 18px 48px;
       }
-      input {
-        margin: 5px 0;
-        padding: 8px;
-        width: calc(100% - 20px);
-        border: 1px solid #ddd;
-        border-radius: 5px;
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--primary), #1d6d3d);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        box-shadow: 0 16px 30px rgba(20,83,45,0.24);
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        color: var(--muted);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 1.3fr 0.7fr;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+      .hero-card,
+      .status-panel {
+        background: var(--surface);
+        border: 1px solid rgba(255,255,255,0.52);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
+      }
+      .hero-card {
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero-card:before {
+        content: "";
+        position: absolute;
+        inset: auto -40px -80px auto;
+        width: 220px;
+        height: 220px;
+        border-radius: 999px;
+        background: rgba(20,83,45,0.08);
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .hero-card h2 {
+        margin: 18px 0 12px;
+        font-size: clamp(28px, 4vw, 44px);
+        line-height: 1.05;
+      }
+      .hero-card p {
+        max-width: 680px;
+        margin: 0;
+        line-height: 1.7;
+        color: var(--muted);
+      }
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 24px;
+      }
+      .metric {
+        padding: 16px;
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        border: 1px solid rgba(31,41,51,0.08);
+      }
+      .metric strong {
+        display: block;
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status-panel {
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .status-label {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      .status-value {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .status-value.small {
+        font-size: 16px;
+        word-break: break-word;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 22px;
+        align-items: start;
+      }
+      .main-form {
+        display: grid;
+        gap: 18px;
+      }
+      .section-card {
+        background: var(--surface);
+        border: 1px solid rgba(255,255,255,0.52);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      fieldset {
+        border: none;
+        margin: 0;
+        padding: 22px;
+      }
+      legend {
+        padding: 0;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .section-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .section-subtitle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .section-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
       }
       select {
-        margin: 5px 0;
-        padding: 8px;
-        width: calc(100% - 2px);
-        border: 1px solid #ddd;
-        border-radius: 5px;
+        width: 100%;
       }
-      
+      input,
+      select {
+        margin: 0;
+        padding: 12px 14px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: rgba(255,255,255,0.96);
+        color: var(--ink);
+        font-size: 14px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: rgba(20,83,45,0.44);
+        box-shadow: 0 0 0 4px rgba(20,83,45,0.11);
+      }
+      input:disabled,
+      select:disabled {
+        background: #eef1f3;
+        color: #8b96a3;
+        cursor: not-allowed;
+      }
       button {
-        margin: 10px 0;
-        padding: 10px 20px;
-        background-color: #007bff;
-        color: white;
+        margin: 0;
+        padding: 13px 18px;
+        background: linear-gradient(135deg, var(--primary), #1a6b3b);
+        color: #fff;
         border: none;
-        border-radius: 5px;
+        border-radius: 15px;
         cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+        box-shadow: 0 14px 28px rgba(20,83,45,0.2);
       }
       button:hover {
-        background-color: #0056b3;
+        transform: translateY(-1px);
       }
-
-      .a {
-        font-size: 18px;
-        font-weight: bold;
-        color: #7bae23;
-        background-color: #FFFFFF;
+      button:disabled {
+        cursor: wait;
+        opacity: 0.75;
       }
-
-      .b {
-        background-color: #f5f5f5;
-        height: 35px;
-        font-size: 16px;
+      .button-secondary {
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        box-shadow: none;
       }
-
+      .button-danger {
+        background: linear-gradient(135deg, #b42318, #d92d20);
+      }
       .container {
-        display: block;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
         position: relative;
-        padding-left: 25px;
-        margin-bottom: 10px;
+        padding-left: 34px;
+        min-height: 20px;
+        margin: 0;
         cursor: pointer;
         user-select: none;
+        font-weight: 600;
       }
-
       .container input {
         position: absolute;
         opacity: 0;
@@ -660,116 +1178,623 @@ void handleRoot() {
 
       .checkmark {
         position: absolute;
-        top: 0;
+        top: 1px;
         left: 0;
-        height: 15px;
-        width: 15px;
-        background-color: #eee;
+        height: 20px;
+        width: 20px;
+        background-color: #eef1f3;
+        border-radius: 6px;
+        border: 1px solid rgba(31,41,51,0.12);
       }
-
       .container:hover input ~ .checkmark {
-        background-color: #ccc;
+        background-color: #e4e8eb;
       }
-
       .container input:checked ~ .checkmark {
-        background-color: #2196F3;
+        background-color: var(--primary);
+        border-color: var(--primary);
       }
-
       .checkmark:after {
         content: "";
         position: absolute;
         display: none;
       }
-
       .container input:checked ~ .checkmark:after {
         display: block;
       }
-
       .container .checkmark:after {
-        left: 4px;
-        top: 0px;
+        left: 6px;
+        top: 1px;
         width: 4px;
         height: 10px;
         border: solid white;
         border-width: 0 3px 3px 0;
         transform: rotate(45deg);
       }
-
-      body.dark-mode {
-        background-color: #1e1e2f;
-        color: #e0e0e0;
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
       }
-
-      body.dark-mode form {
-        background-color: #282c34;
-        box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
-        border: 1px solid #3c3f4c;
+      td {
+        padding: 0 8px;
+        vertical-align: top;
       }
-
-      body.dark-mode input,
-      body.dark-mode select,
-      body.dark-mode textarea {
-        background-color: #3b3f4a;
-        color: #f5f5f5;
-        border: 1px solid #555;
-        padding: 8px;
-        border-radius: 5px;
+      td:first-child {
+        padding-left: 0;
       }
-
-      body.dark-mode input:disabled {
-        background-color: #2b2f39;
-        color: #999;
-        border: 1px solid #444;
+      td:last-child {
+        padding-right: 0;
       }
-
-      body.dark-mode button {
-        background-color: #4a90e2;
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .row-card {
+        background: var(--surface-muted);
+        border: 1px solid rgba(31,41,51,0.06);
+        border-radius: var(--radius-md);
+        padding: 14px;
+      }
+      .toggle-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+      }
+      .sidebar {
+        display: grid;
+        gap: 18px;
+        position: sticky;
+        top: 18px;
+      }
+      .sidebar-card {
+        background: var(--surface);
+        border: 1px solid rgba(255,255,255,0.52);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+      .sidebar-card h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+      .sidebar-card p {
+        margin: 0 0 14px;
+        line-height: 1.6;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .sidebar-links {
+        display: grid;
+        gap: 10px;
+      }
+      .sidebar-links a,
+      .resource-link {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 14px;
+        border-radius: 15px;
+        background: var(--surface-muted);
+        border: 1px solid rgba(31,41,51,0.06);
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .save-bar {
+        position: sticky;
+        bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-top: 10px;
+        padding: 16px 18px;
+        border-radius: 20px;
+        background: rgba(15,63,35,0.94);
+        color: #f3f7f4;
+        box-shadow: 0 20px 40px rgba(15,63,35,0.2);
+      }
+      .save-copy strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 15px;
+      }
+      .save-copy span {
+        color: rgba(243,247,244,0.78);
+        font-size: 13px;
+      }
+      .save-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .inline-note,
+      .banner {
+        border-radius: 16px;
+        padding: 14px 16px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .inline-note {
+        background: rgba(201,139,44,0.12);
+        border: 1px solid rgba(201,139,44,0.18);
+        color: #7a561a;
+      }
+      .banner {
+        display: none;
+        margin-bottom: 18px;
+      }
+      .banner.success {
+        display: block;
+        background: rgba(20,83,45,0.1);
+        border: 1px solid rgba(20,83,45,0.16);
+        color: var(--primary-strong);
+      }
+      .banner.error {
+        display: block;
+        background: rgba(180,35,24,0.08);
+        border: 1px solid rgba(180,35,24,0.16);
+        color: var(--danger);
+      }
+      .status-list {
+        display: grid;
+        gap: 12px;
+      }
+      .hidden {
+        display: none !important;
+      }
+      /* Keep the device portal focused on configuration, not a dashboard. */
+      .page {
+        max-width: 1080px;
+        padding-top: 18px;
+      }
+      .brand-mark,
+      .brand-copy p,
+      .hero,
+      .sidebar,
+      .section-subtitle,
+      .section-badge,
+      .save-copy {
+        display: none;
+      }
+      .brand-copy h1 {
+        font-size: 22px;
+      }
+      .layout {
+        display: block;
+      }
+      .main-form {
+        gap: 12px;
+      }
+      .section-card {
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(25,39,53,0.08);
+      }
+      fieldset {
+        padding: 18px;
+      }
+      .section-head {
+        margin-bottom: 14px;
+      }
+      .section-title {
+        font-size: 18px;
+      }
+      .save-bar {
+        justify-content: flex-end;
+        padding: 14px 18px;
+      }
+      .inline-note {
+        margin-top: 14px;
+        padding: 10px 12px;
+      }
+      /* Compact visual system for the on-device control panel. */
+      body {
+        background:
+          radial-gradient(circle at 8% -8%, rgba(45, 212, 191, 0.16), transparent 28%),
+          radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.13), transparent 25%),
+          #f4f7fb;
+      }
+      .topbar {
+        position: sticky;
+        top: 12px;
+        z-index: 5;
+        margin-bottom: 18px;
+        padding: 12px 14px 12px 18px;
+        border: 1px solid rgba(148,163,184,0.22);
+        border-radius: 18px;
+        background: rgba(255,255,255,0.88);
+        box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+        backdrop-filter: blur(14px);
+      }
+      .brand-copy h1 {
+        color: #0f172a;
+        letter-spacing: -0.03em;
+      }
+      .toolbar button {
+        padding: 10px 14px;
+        border-radius: 11px;
+      }
+      .section-card {
+        border: 1px solid #e2e8f0;
+        background: rgba(255,255,255,0.96);
+        box-shadow: 0 10px 24px rgba(15,23,42,0.055);
+      }
+      .section-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 14px 30px rgba(15,23,42,0.075);
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #0f172a;
+      }
+      .section-title:before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #14b8a6, #2563eb);
+        box-shadow: 0 0 0 4px #ecfeff;
+      }
+      label {
+        color: #475569;
+        font-weight: 700;
+      }
+      input,
+      select {
+        border-color: #dbe3ee;
+        border-radius: 11px;
+        background: #fbfdff;
+      }
+      input:focus,
+      select:focus {
+        border-color: #14b8a6;
+        box-shadow: 0 0 0 4px rgba(20,184,166,0.13);
+      }
+      .row-card {
+        background: #f8fafc;
+        border-color: #e7edf5;
+        border-radius: 12px;
+      }
+      .container {
+        color: #334155;
+      }
+      .inline-note {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px 10px;
+        align-items: center;
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #64748b;
+      }
+      .inline-note strong {
+        color: #334155;
+      }
+      .inline-note.is-connected {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #047857;
+      }
+      .inline-note.is-connected strong,
+      .inline-note.is-connected #lanRuntimeState {
+        color: #047857;
+      }
+      .save-bar {
+        border: 1px solid rgba(15,23,42,0.1);
+        border-radius: 16px;
+        background: #0f172a;
+        box-shadow: 0 16px 35px rgba(15,23,42,0.22);
+      }
+      .save-actions .button-secondary {
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
         color: #fff;
-        border: none;
-        transition: background-color 0.3s ease;
       }
-
-      body.dark-mode button:hover {
-        background-color: #357abd;
+      /* Reference layout: colored section headers with compact, readable fields. */
+      body {
+        background:
+          radial-gradient(circle at 15% 0%, rgba(147,197,253,0.5), transparent 30%),
+          linear-gradient(180deg, #edf7ff 0%, #f7fbff 58%, #eaf4ff 100%);
       }
-
-      body.dark-mode .a {
-        color: #98c379; /* เขียวอ่อนแบบ developer theme */
+      .page {
+        max-width: 1120px;
       }
-
-      body.dark-mode .b {
-        background-color: #2a2e3a;
-        font-size: 16px;
+      .topbar {
+        padding: 16px 22px;
+        border: 0;
+        border-radius: 0 0 16px 16px;
+        background: linear-gradient(118deg, #1685ec 0%, #1668d7 54%, #1059c0 100%);
+        box-shadow: 0 15px 36px rgba(30,100,200,0.28);
       }
-
-      body.dark-mode .checkmark {
-        background-color: #444;
-        border-radius: 3px;
+      .brand-mark {
+        display: grid;
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        background: rgba(255,255,255,0.16);
+        box-shadow: none;
+        font-size: 0;
       }
-
-      body.dark-mode .container input:checked ~ .checkmark {
-        background-color: #4a90e2;
-      }
-
-      body.dark-mode #darkModeToggle {
-        background-color: #3b3f4a;
+      .brand-mark:after {
+        content: "▣";
+        font-size: 27px;
         color: #fff;
       }
-
-      body.dark-mode #darkModeToggle:hover {
-        background-color: #4a90e2;
+      .brand-copy p {
+        display: block;
+        margin-top: 2px;
+        color: rgba(255,255,255,0.84);
+        font-size: 13px;
       }
-
-     
+      .brand-copy h1 {
+        color: #fff;
+        font-size: 25px;
+      }
+      .toolbar button {
+        min-width: 104px;
+        color: #fff;
+        background: rgba(255,255,255,0.17);
+        border: 1px solid rgba(255,255,255,0.28);
+        box-shadow: none;
+      }
+      .toolbar .button-danger {
+        background: linear-gradient(135deg, #fb4b64, #f13651);
+        border-color: transparent;
+      }
+      .main-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .main-form > .section-card,
+      .main-form > .save-bar {
+        grid-column: 1 / -1;
+      }
+      #modbusSettingsSection,
+      #canbusSettingsSection {
+        grid-column: auto;
+      }
+      .section-card {
+        --section: #2495f4;
+        --section-tint: #eaf6ff;
+        position: relative;
+        overflow: hidden;
+        border-radius: 15px;
+        border-color: #e2ebf5;
+      }
+      .section-card:before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--section);
+      }
+      .section-card fieldset {
+        padding: 0 24px 18px;
+      }
+      .section-head {
+        margin: 0 -24px 15px;
+        padding: 13px 24px;
+        background: linear-gradient(90deg, var(--section-tint), rgba(255,255,255,0.3));
+      }
+      .section-subtitle {
+        display: block;
+        margin-top: 2px;
+        color: #64748b;
+        font-size: 13px;
+      }
+      .section-title:before {
+        content: "";
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: var(--section);
+        box-shadow: 0 7px 14px color-mix(in srgb, var(--section) 30%, transparent);
+      }
+      #deviceInfoSection { --section: #1597ed; --section-tint: #e5f4ff; }
+      #mqttSection { --section: #8b35ef; --section-tint: #f2eaff; }
+      #lanSection { --section: #18c97c; --section-tint: #e6fbf1; }
+      #wlanSettingsSection { --section: #288def; --section-tint: #e8f4ff; }
+      #serialSettingsSection { --section: #f59e0b; --section-tint: #fff6df; }
+      #modbusSettingsSection { --section: #f04462; --section-tint: #ffebef; }
+      #canbusSettingsSection { --section: #813cf0; --section-tint: #f2ebff; }
+      #deviceInfoSection .section-title:before { content: "▣"; }
+      #mqttSection .section-title:before { content: "⌁"; }
+      #lanSection .section-title:before { content: "⌘"; }
+      #wlanSettingsSection .section-title:before { content: "⌁"; }
+      #serialSettingsSection .section-title:before { content: "▤"; }
+      #modbusSettingsSection .section-title:before { content: "⚙"; }
+      #canbusSettingsSection .section-title:before { content: "⌘"; }
+      .section-title:before {
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 21px;
+        box-shadow: 0 8px 15px rgba(15,23,42,0.13);
+      }
+      table {
+        border-spacing: 0 8px;
+      }
+      td {
+        padding: 0 6px;
+      }
+      label {
+        white-space: nowrap;
+        font-size: 12px;
+        color: #18233b;
+      }
+      input,
+      select {
+        min-height: 38px;
+        padding: 9px 11px;
+        background: #fff;
+      }
+      .row-card {
+        margin-bottom: 6px;
+        padding: 10px 0;
+        background: transparent;
+        border: 0;
+      }
+      .checkmark {
+        border-radius: 50%;
+      }
+      .inline-note {
+        border-radius: 9px;
+        font-size: 12px;
+      }
+      .save-bar {
+        position: static;
+        margin-top: 2px;
+        background: transparent;
+        box-shadow: none;
+        border: 0;
+      }
+      .save-actions .button-secondary {
+        background: #fff;
+        border-color: #d5e1ee;
+        color: #20304a;
+      }
+      .save-actions #saveButton {
+        background: linear-gradient(135deg, #20c979, #13a85f);
+        box-shadow: 0 9px 18px rgba(19,168,95,0.24);
+      }
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+        }
+      }
+      @media (max-width: 920px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+        .hero-metrics {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 720px) {
+        .main-form {
+          grid-template-columns: 1fr;
+        }
+        #modbusSettingsSection,
+        #canbusSettingsSection {
+          grid-column: 1 / -1;
+        }
+        .page {
+          padding: 18px 12px 28px;
+        }
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .toolbar {
+          width: 100%;
+          justify-content: stretch;
+        }
+        .toolbar button,
+        .toolbar a {
+          flex: 1 1 100%;
+        }
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+          width: 100%;
+        }
+        td {
+          padding: 0;
+          margin-bottom: 12px;
+        }
+        .save-bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .save-actions button {
+          width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
-    
-    <form id="mqttForm">
-      <fieldset id="deviceInfoSection">
-        <legend class="a">Device Information</legend>
+    <div class="page">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-mark">32</div>
+          <div class="brand-copy">
+            <h1>ESP32 Config</h1>
+            <p>Device Configuration &amp; Network Settings</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="button-secondary" type="button" onclick="refreshSettings()">↻&nbsp; Refresh</button>
+          <button class="button-danger" type="button" onclick="logout()">⇥&nbsp; Logout</button>
+        </div>
+      </div>
+
+      <div class="hero">
+        <section class="hero-card">
+          <div class="eyebrow">Device Configuration Portal</div>
+          <h2>Provision faster, deploy cleaner, maintain with confidence.</h2>
+          <p>Review device identity, update connectivity, and tune industrial interfaces from a single browser session. Built to work directly from the ESP32 without external cloud services.</p>
+          <div class="hero-metrics">
+            <div class="metric">
+              <strong id="metricDeviceName">Device</strong>
+              <span>Configured device identity</span>
+            </div>
+            <div class="metric">
+              <strong id="metricNetworkMode">Waiting</strong>
+              <span>Primary wireless provisioning mode</span>
+            </div>
+            <div class="metric">
+              <strong id="metricMQTTState">Disabled</strong>
+              <span>Telemetry publishing status</span>
+            </div>
+          </div>
+        </section>
+        <aside class="status-panel">
+          <div class="status-chip">Live Session</div>
+          <div>
+            <div class="status-label">Portal status</div>
+            <div class="status-value" id="portalState">Active</div>
+          </div>
+          <div>
+            <div class="status-label">Firmware version</div>
+            <div class="status-value small" id="heroFirmwareVersion">Unknown</div>
+          </div>
+          <div>
+            <div class="status-label">Current WiFi SSID</div>
+            <div class="status-value small" id="heroWifiSsid">Not configured</div>
+          </div>
+        </aside>
+      </div>
+
+      <div id="pageBanner" class="banner"></div>
+
+      <div class="layout">
+        <form id="mqttForm" class="main-form">
+          <section id="deviceInfoSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">Device</div>
+            <div class="section-subtitle">Read-only metadata currently embedded in the firmware build.</div>
+          </div>
+          <div class="section-badge">Overview</div>
+        </legend>
         <table>
-          <tr class="b">
+          <tr>
             <td><label>Device Name</label></td>
             <td><input type="text" id="deviceName" placeholder="Device Name" disabled></td>
             <td><label>Firmware Version</label></td>
@@ -777,35 +1802,43 @@ void handleRoot() {
           </tr>
         </table>
       </fieldset>
+          </section>
       
-      <fieldset id="mqttSection">
-        <legend class="a">MQTT Configuration</legend>
+      <section id="mqttSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">MQTT</div>
+            <div class="section-subtitle">Telemetry broker, identity, and publish-subscribe topics.</div>
+          </div>
+          <div class="section-badge">Cloud</div>
+        </legend>
+        <div class="row-card toggle-row">
+          <label class="container">Enable MQTT
+            <input type="checkbox" id="EnableMQTT" onchange="toggleEnableMQTT()">
+            <span class="checkmark"></span>
+          </label>
+        </div>
         <table>
           <tr>
-            <td> <label class="container">Enable
-              <input type="checkbox" id="EnableMQTT" onchange="toggleEnableMQTT()">
-              <span class="checkmark"></span>
-            </label></td>
-          </tr>
-          <tr class="b">
             <td><label>MQTT Server</label></td>
             <td><input type="text" id="mqttServer" placeholder="MQTT Server" required></td>
             <td><label>Port</label></td>
             <td><input type="number" id="mqttPort" placeholder="Port" required></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>Username</label></td>
             <td><input type="text" id="mqttUser" placeholder="Username"></td>
             <td><label>Password</label></td>
             <td><input type="password" id="mqttPassword" placeholder="Password"></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>ClientId</label></td>
             <td><input type="text" id="clientId" placeholder="ClientId"></td>
             <td><label>Subscribe Topic</label></td>
             <td><input type="text" id="mqttSubscribe" placeholder="Subscribe Topic"></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>Publish Topic</label></td>
             <td><input type="text" id="mqttPublish" placeholder="Publish Topic"></td>
             <td><label>Sampling Time</label></td>
@@ -813,65 +1846,79 @@ void handleRoot() {
           </tr>
         </table>
       </fieldset>
+      </section>
       
-      <fieldset id="lanSection">
-        <legend class="a">LAN Setting</legend>
+      <section id="lanSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">Ethernet</div>
+            <div class="section-subtitle">Ethernet addressing and local network access parameters.</div>
+          </div>
+          <div class="section-badge">Network</div>
+        </legend>
+        <div class="row-card toggle-row">
+          <label class="container">Use DHCP
+            <input type="radio" name="lanType" id="lanDhcp" value="dhcp" onchange="toggleLanInputs()">
+            <span class="checkmark"></span>
+          </label>
+          <label class="container">Use Static IP
+            <input type="radio" name="lanType" id="lanStatic" value="static" onchange="toggleLanInputs()">
+            <span class="checkmark"></span>
+          </label>
+        </div>
         <table>
           <tr>
-            <td >
-              <label class="container">Use DHCP &nbsp;&nbsp;
-                <input type="radio" name="lanType" id="lanDhcp" value="dhcp" onchange="toggleLanInputs()">
-                <span class="checkmark"></span>
-              </label></td>
-              <td ><label class="container">Use Static 
-                <input type="radio" name="lanType" id="lanStatic" value="static" onchange="toggleLanInputs()">
-                <span class="checkmark"></span>
-              </label></td>
-            
-          </tr>
-          <tr class="b">
             <td><label>MAC Address</label></td>
             <td><input type="text" id="lanMac" placeholder="AA:BB:CC:DD:EE:FF"  disabled></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>IP Address</label></td>
             <td><input type="text" id="lanIp" pattern="^(\d{1,3}\.){3}\d{1,3}$" placeholder="192.168.1.100"></td>
             <td><label>Subnet Mask</label></td>
             <td><input type="text" id="lanSubnet" placeholder="255.255.255.0"></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>Gateway</label></td>
             <td><input type="text" id="lanGateway" placeholder="192.168.1.1"></td>
             <td><label>DNS</label></td>
             <td><input type="text" id="lanDns" placeholder="8.8.8.8"></td>
           </tr>
         </table>
+        <div id="lanRuntimeStatus" class="inline-note">
+          <strong>Active LAN:</strong>
+          <span id="lanRuntimeState">Waiting for an IP address...</span>
+          <span id="lanRuntimeValues"></span>
+        </div>
       </fieldset>
+      </section>
       
-      <fieldset id="wlanSettingsSection">
-        <legend class="a">WLAN Setting</legend>
+      <section id="wlanSettingsSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">Wi-Fi</div>
+            <div class="section-subtitle">WiFi credentials, scanning, and static IP overrides.</div>
+          </div>
+          <div class="section-badge">Wireless</div>
+        </legend>
+        <div class="row-card toggle-row">
+          <label class="container">Use DHCP
+            <input type="radio" name="wlanType" id="wlanDhcp" value="dhcp" onchange="toggleWlanInputs()">
+            <span class="checkmark"></span>
+          </label>
+          <label class="container">Use Static IP
+            <input type="radio" name="wlanType" id="wlanStatic" value="static" onchange="toggleWlanInputs()">
+            <span class="checkmark"></span>
+          </label>
+          <button class="button-secondary" type="button" onclick="scanWifi()">Scan WiFi</button>
+        </div>
         <table>
           <tr>
-            <td >
-              <label class="container">Use DHCP&nbsp;&nbsp;
-                <input type="radio" name="wlanType" id="wlanDhcp" value="dhcp" onchange="toggleWlanInputs()">
-                <span class="checkmark"></span>
-              </label>
-            </td>
-            <td >
-              <label class="container">Use Static
-                <input type="radio" name="wlanType" id="wlanStatic" value="static" onchange="toggleWlanInputs()">
-                <span class="checkmark"></span>
-              </label>
-            </td>
-          </tr>
-          <tr class="b">
             <td><label>MAC Address</label></td>
             <td><input type="text" id="wlanMac" placeholder="AA:BB:CC:DD:EE:FF" disabled></td>
-            
           </tr>
-          <tr class="b">
-            
+          <tr>
             <td><label>SSID</label></td>
             <td>
               <input  type="text" id="wlanSsid" placeholder="WiFi SSID" list="ssidList" required>
@@ -880,27 +1927,36 @@ void handleRoot() {
             <td><label>Password</label></td>
             <td><input type="password" id="wlanPassword" placeholder="WiFi Password"></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>IP Address</label></td>
             <td><input type="text" id="wlanIp" pattern="^(\d{1,3}\.){3}\d{1,3}$" placeholder="192.168.1.101"></td>
             <td><label>Subnet Mask</label></td>
             <td><input type="text" id="wlanSubnet" placeholder="255.255.255.0"></td>
           </tr>
-          <tr class="b">
+          <tr>
             <td><label>Gateway</label></td>
             <td><input type="text" id="wlanGateway" placeholder="192.168.1.1"></td>
             <td><label>DNS</label></td>
             <td><input type="text" id="wlanDns" placeholder="8.8.8.8"></td>
           </tr>
         </table>
+        <div id="wifiScanNote" class="inline-note hidden">WiFi scan will populate the SSID suggestions list.</div>
       </fieldset>
+      </section>
       
-      <fieldset id="serialSettingsSection">
-        <legend class="a">Serial Settings</legend>
+      <section id="serialSettingsSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">Serial</div>
+            <div class="section-subtitle">UART framing and baud settings for device communication.</div>
+          </div>
+          <div class="section-badge">Interface</div>
+        </legend>
         <table>
-          <tr class="b">
-            <td width="14%"><label>Baud rates </label></td>
-            <td width="14%">
+          <tr>
+            <td><label>Baud rates </label></td>
+            <td>
               <select id="serialBaud">
                 <option value=4800>4800</option>
                 <option value=9600>9600</option>
@@ -909,81 +1965,69 @@ void handleRoot() {
                 <option value=115200>115200</option>
               </select>
             </td>
-            <td width="14%"><label>Data bits </label></td>
-            <td width="14%">
+            <td><label>Data bits </label></td>
+            <td>
               <select id="serialDataBits">
                 <option value=8>8</option>
                 <option value=7>7</option>
                 
               </select>
             </td>
-            <!-- <td><label>Baud rates </label></td>
-            <td><input type="number" id="serialBaud" placeholder="9600"></td>
-            <td><label>Data bits </label></td>
-            <td><input type="number" id="serialDataBits" placeholder="8"></td> -->
           </tr>
-          
-          <tr class="b">
-            <td width="14%"><label>Parity </label></td>
-            <td width="14%">
+
+          <tr>
+            <td><label>Parity </label></td>
+            <td>
               <select id="serialParity">
                 <option value="none">None</option>
                 <option value="even">Even</option>
                 <option value="odd">Odd</option>
               </select>
             </td>
-            <td width="14%"><label>Stop bits </label></td>
-            <td width="14%">
+            <td><label>Stop bits </label></td>
+            <td>
               <select id="serialStopBits">
                 <option value=1>1</option>
                 <option value=2>2</option>
                 
               </select>
             </td>
-            <!-- <td><label>Stop bits </label></td>
-            <td><input type="number" id="serialStopBits" placeholder="1"></td> -->
           </tr>
           
         </table>
       </fieldset>
+      </section>
       
-      <fieldset id="modbusSettingsSection">
-        <legend class="a">Modbus Settings</legend>
-        <table>
-          <tr>
-            <td>
-              <label class="container">TCP Client
-                <input type="checkbox" id="modbusTcp" onchange="toggleModbusTcp()">
-                <span class="checkmark"></span>
-              </label>
-            </td>
-          </tr>
-        </table>
+      <section id="modbusSettingsSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">Modbus</div>
+            <div class="section-subtitle">Choose TCP or RTU operation and define endpoint settings.</div>
+          </div>
+          <div class="section-badge">Industrial</div>
+        </legend>
+        <div class="row-card toggle-row">
+          <label class="container">TCP Client
+            <input type="checkbox" id="modbusTcp" onchange="toggleModbusTcp()">
+            <span class="checkmark"></span>
+          </label>
+          <label class="container">RTU Master
+            <input type="checkbox" id="modbusRtu" onchange="toggleModbusRTU()">
+            <span class="checkmark"></span>
+          </label>
+        </div>
       
-        <!-- ส่วน TCP Client -->
         <table id="tcpClientSection" style="display:none;">
-          <tr class="b">
+          <tr>
             <td><label>Server IP</label></td>
             <td><input type="text" id="server_ip" placeholder="Server IP"></td>
             <td><label>Server Port</label></td>
             <td><input type="number" id="server_port" placeholder="Server Port"></td>
           </tr>
         </table>
-        <br />
-       
-        <table >
-          <tr>
-            <td>
-              <label class="container">RTU Master
-                <input type="checkbox" id="modbusRtu" onchange="toggleModbusRTU()">
-                <span class="checkmark"></span>
-              </label>
-            </td>
-          </tr>
-        </table>
-	        <table >
-	          <!-- เพิ่มฟิลด์สำหรับ RTU Master ที่นี่ -->
-	           <tr class="b">
+	        <table id="rtuMasterSection" style="display:none;">
+	           <tr>
             <td><label> Address </label></td>
             <td><input type="number" id="rtuAddress" placeholder="Address" min="1" step="1"></td>
             
@@ -991,30 +2035,33 @@ void handleRoot() {
         </table>
 
       </fieldset>
+      </section>
 
-      <fieldset id="canbusSettingsSection">
-        <legend class="a">CAN Bus Settings</legend>
-        <!-- เพิ่มฟิลด์สำหรับ CAN Bus ที่นี่ -->
-         <table>
-          <tr>
-            <td>
-              <label class="container">Master
-                <input type="checkbox" id="canbusMaster" >
-                <span class="checkmark"></span>
-              </label>
-            </td>
-          </tr>
-        </table>
+      <section id="canbusSettingsSection" class="section-card">
+      <fieldset>
+        <legend class="section-head">
+          <div>
+            <div class="section-title">CAN Bus</div>
+            <div class="section-subtitle">Control bus role, identity, and baud configuration.</div>
+          </div>
+          <div class="section-badge">Field Bus</div>
+        </legend>
+         <div class="row-card toggle-row">
+          <label class="container">Master
+            <input type="checkbox" id="canbusMaster" >
+            <span class="checkmark"></span>
+          </label>
+        </div>
          <table>
           
-          <tr class="b">
+          <tr>
             <td><label>ID</label></td>
             <td><input type="text" id="canbusId" placeholder="CAN Bus ID" ></td>
             
           </tr>
-           <tr class="b">
-            <td ><label>Baud rates  </label></td>
-            <td >
+           <tr>
+            <td><label>Baud rates  </label></td>
+            <td>
               <select id="canbusBaud">
                 <option value=100>100KBPS</option>
                 <option value=125>125KBPS</option>
@@ -1024,90 +2071,114 @@ void handleRoot() {
                 <option value=1000>1MBPS</option>
               </select>
             </td>
-            
-            <!-- <td><label>Baud rates </label></td>
-            <td><input type="number" id="serialBaud" placeholder="9600"></td>
-            <td><label>Data bits </label></td>
-            <td><input type="number" id="serialDataBits" placeholder="8"></td> -->
           </tr>
          </table>
 
       </fieldset>
-      <!-- <fieldset>
-        <legend class="a">Modbus Settings</legend>
-        <table>
-          <tr>
-            <td> <label class="container">TCP Client
-              <input type="checkbox" id="checkbox">
-              <span class="checkmark"></span>
-            </label></td>
-          </tr>
-          <tr class="b">
-            <td><label>IP Address</label></td>
-            <td><input type="text" id="ip" placeholder="IP Address" required></td>
-            <td><label>Subnet Mask</label></td>
-            <td><input type="text" id="subnet" placeholder="Subnet Mask" required></td>
-          </tr>
-          <tr class="b">
-            <td><label>Gateway</label></td>
-            <td><input type="text" id="gateway" placeholder="Gateway" required></td>
-            <td><label>Port</label></td>
-            <td><input type="number" id="port" placeholder="Port" required></td>
-          </tr>
-          <tr class="b">
-            <td><label>DHCP</label></td>
-            <td colspan="3">
-              <label class="container">Enable
-                <input type="checkbox" id="checkbox">
-                <span class="checkmark"></span>
-              </label>
-            </td>
-          </tr>
-          <tr class="b">
-            <td><label>Server IP</label></td>
-            <td><input type="text" id="server_ip" placeholder="Server IP" required></td>
-            <td><label>Server Port</label></td>
-            <td><input type="number" id="server_port" placeholder="Server Port" required></td>
-          </tr>
-        </table>
-      </fieldset> -->
-      <button type="button" onclick="submitSettings()" >
-         Save Settings
-      </button>
-      <!-- <button id="darkModeToggle" onclick="toggleDarkMode()">🌗 Toggle Dark Mode</button> -->
+      </section>
+      <div class="save-bar">
+        <div class="save-copy">
+          <strong>Ready to apply changes</strong>
+          <span>Saving will persist the configuration and restart the device.</span>
+        </div>
+        <div class="save-actions">
+          <button class="button-secondary" type="button" onclick="refreshSettings()">Reload</button>
+          <button id="saveButton" type="button" onclick="submitSettings()">Save &amp; Restart</button>
+        </div>
+      </div>
     </form>
+
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h3>Quick Actions</h3>
+        <p>Open maintenance tools exposed by the current firmware build.</p>
+        <div class="sidebar-links" id="featureLinks">
+          <a id="otaLink" href="/update">Firmware Update <span>Open</span></a>
+          <a id="spiffsLink" href="/update-spiffs">SPIFFS Update <span>Open</span></a>
+          <a id="fileManagerLink" href="/file-manager">File Manager <span>Open</span></a>
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <h3>Session Notes</h3>
+        <div class="status-list">
+          <div>
+            <div class="status-label">MQTT broker</div>
+            <div class="status-value small" id="summaryBroker">Not configured</div>
+          </div>
+          <div>
+            <div class="status-label">LAN mode</div>
+            <div class="status-value small" id="summaryLanMode">DHCP</div>
+          </div>
+          <div>
+            <div class="status-label">Serial profile</div>
+            <div class="status-value small" id="summarySerial">9600 / 8N1</div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <h3>Operational Reminder</h3>
+        <p>Keep network values complete when static IP mode is enabled. Partial static settings can prevent the device from reconnecting after restart.</p>
+      </div>
+    </aside>
+      </div>
+    </div>
 
     <script>
       if (!sessionStorage.getItem("esp32_token")) {
         sessionStorage.removeItem("esp32_token");
          window.location.href = "/login";
         }
-      //loadSettings();
-      document.getElementById('wlanSsid').addEventListener('focus', scanWifi);
+      document.getElementById('wlanSsid').addEventListener('focus', function () {
+        document.getElementById('wifiScanNote').classList.remove('hidden');
+      });
+      function showBanner(message, type) {
+        const banner = document.getElementById('pageBanner');
+        banner.textContent = message;
+        banner.className = 'banner ' + type;
+      }
+      function clearBanner() {
+        const banner = document.getElementById('pageBanner');
+        banner.textContent = '';
+        banner.className = 'banner';
+      }
+      function setSaveBusy(isBusy) {
+        const saveButton = document.getElementById('saveButton');
+        saveButton.disabled = isBusy;
+        saveButton.textContent = isBusy ? 'Saving...' : 'Save & Restart';
+      }
       async function scanWifi() {
-        console.log("กำลังสแกน WiFi...");
+        document.getElementById('wifiScanNote').classList.remove('hidden');
+        document.getElementById('wifiScanNote').textContent = 'Scanning nearby access points...';
         const token = sessionStorage.getItem("esp32_token");
-        const response = await fetch('/scan_wifi', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        
-        if (!response.ok) {
-        sessionStorage.removeItem("esp32_token");
-          window.location.href = "/login";
-          return;
-        }
+        try {
+          const response = await fetch('/scan_wifi', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
 
-        const ssids = await response.json();
-        console.log("พบ SSID:", ssids);
-        const datalist = document.getElementById('ssidList');
-        datalist.innerHTML = ''; // เคลียร์ก่อน
-        ssids.forEach(ssid => {
-          const option = document.createElement('option');
-          option.value = ssid;
-          datalist.appendChild(option);
-        });
+          if (!response.ok) {
+            sessionStorage.removeItem("esp32_token");
+            window.location.href = "/login";
+            return;
+          }
+
+          const ssids = await response.json();
+          const datalist = document.getElementById('ssidList');
+          datalist.innerHTML = '';
+          ssids.forEach(ssid => {
+            const option = document.createElement('option');
+            option.value = ssid;
+            datalist.appendChild(option);
+          });
+          document.getElementById('wifiScanNote').textContent = ssids.length
+            ? 'Found ' + ssids.length + ' network(s). Suggestions updated below.'
+            : 'No WiFi networks were found during this scan.';
+        } catch (error) {
+          document.getElementById('wifiScanNote').textContent = 'WiFi scan failed. Please try again.';
+        }
       }
       async function submitSettings() {
+        clearBanner();
+        setSaveBusy(true);
         const data = {
           server: document.getElementById('mqttServer').value,
           port: document.getElementById('mqttPort').value,
@@ -1118,11 +2189,6 @@ void handleRoot() {
           subscribeTopic: document.getElementById('mqttSubscribe').value,
           samplingtime: document.getElementById('samplingtime').value,
           enableMQTT: document.getElementById('EnableMQTT').checked,
-          // ip: document.getElementById('ip').value,
-          // subnet: document.getElementById('subnet').value,
-          // gateway: document.getElementById('gateway').value,
-          // mbport: document.getElementById('port').value,
-          // checkbox: document.getElementById('checkbox').checked,
           server_ip: document.getElementById('server_ip').value,
           server_port: document.getElementById('server_port').value,
           rtuAddress: document.getElementById('rtuAddress').value,
@@ -1160,20 +2226,69 @@ void handleRoot() {
 
         };
         const token = sessionStorage.getItem("esp32_token");
-        const response = await fetch('/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json','Authorization': 'Bearer ' + token },
-          body: JSON.stringify(data)
-        });
-        alert(await response.text());
-        if (!response.ok) {
-          sessionStorage.removeItem("esp32_token");
-          //window.location.href = "/login";
-          return;
+        try {
+          const response = await fetch('/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json','Authorization': 'Bearer ' + token },
+            body: JSON.stringify(data)
+          });
+          const message = await response.text();
+          if (!response.ok) {
+            sessionStorage.removeItem("esp32_token");
+            showBanner(message || 'Unable to save settings.', 'error');
+            setSaveBusy(false);
+            return;
+          }
+          showBanner(message || 'Settings saved. Device is restarting...', 'success');
+        } catch (error) {
+          showBanner('Unable to save settings. Please retry once the device is reachable.', 'error');
+          setSaveBusy(false);
         }
       }
       function safeDisplay(flag) {
         return flag === true ? 'block' : 'none';
+      }
+      function updateSummary(data) {
+        document.getElementById('metricDeviceName').textContent = data.deviceName || 'ESP32 Device';
+        document.getElementById('metricNetworkMode').textContent = data.wlanType ? 'DHCP' : 'Static IP';
+        document.getElementById('metricMQTTState').textContent = data.enableMQTT ? 'Enabled' : 'Disabled';
+        document.getElementById('portalState').textContent = data.configPortalEnabled ? 'Active' : 'Disabled';
+        document.getElementById('heroFirmwareVersion').textContent = data.firmwareVersion || 'Unknown';
+        document.getElementById('heroWifiSsid').textContent = data.wlanSsid || 'Not configured';
+        document.getElementById('summaryBroker').textContent = data.server || 'Not configured';
+        document.getElementById('summaryLanMode').textContent = data.lanType ? 'DHCP' : 'Static IP';
+        document.getElementById('summarySerial').textContent =
+          String(data.serialBaud || '9600') + ' / ' +
+          String(data.serialDataBits || '8') +
+          (data.serialParity === 'even' ? 'E' : data.serialParity === 'odd' ? 'O' : 'N') +
+          String(data.serialStopBits || '1');
+      }
+      function updateLanRuntime(data) {
+        const panel = document.getElementById('lanRuntimeStatus');
+        const state = document.getElementById('lanRuntimeState');
+        const values = document.getElementById('lanRuntimeValues');
+        panel.classList.toggle('is-connected', data.lanConnected);
+        if (!data.lanConnected) {
+          state.textContent = 'Waiting for an IP address...';
+          values.textContent = '';
+          return;
+        }
+        state.textContent = 'Connected';
+        values.textContent = 'IP: ' + data.lanIp +
+          ' | Subnet: ' + data.lanSubnet +
+          ' | Gateway: ' + data.lanGateway +
+          ' | DNS: ' + data.lanDns;
+      }
+      async function loadLanRuntime() {
+        const token = sessionStorage.getItem('esp32_token');
+        if (!token) return;
+        try {
+          const response = await fetch('/network-status', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          if (response.ok) updateLanRuntime(await response.json());
+        } catch (error) {
+        }
       }
       async function loadSettings() {
         const token = sessionStorage.getItem("esp32_token");
@@ -1188,7 +2303,6 @@ void handleRoot() {
           return;
         }
         const data = await response.json();
-        console.log(data);
         document.getElementById('deviceInfoSection').style.display     = safeDisplay(data.showDeviceInfo);
         document.getElementById('mqttSection').style.display           = safeDisplay(data.showMQTT);
         document.getElementById('lanSection').style.display            = safeDisplay(data.showLAN);
@@ -1196,6 +2310,7 @@ void handleRoot() {
         document.getElementById('serialSettingsSection').style.display = safeDisplay(data.showSerial);
         document.getElementById('modbusSettingsSection').style.display = safeDisplay(data.showModbus);
         document.getElementById('canbusSettingsSection').style.display = safeDisplay(data.showCanBus);
+        updateSummary(data);
 
         document.getElementById('deviceName').value = data.deviceName || '';
         document.getElementById('firmwareVersion').value = data.firmwareVersion || '';
@@ -1213,16 +2328,6 @@ void handleRoot() {
         document.getElementById('mqttSubscribe').value = data.subscribeTopic || '';
         document.getElementById('samplingtime').value = data.samplingtime || '';
         toggleEnableMQTT()
-
-        // document.getElementById('ip').value = data.ip || '';
-        // document.getElementById('subnet').value = data.subnet || '';
-        // document.getElementById('gateway').value = data.gateway || '';
-        // document.getElementById('port').value = data.mbport || '';
-        // document.getElementById('checkbox').checked = data.checkbox || false;
-        
-        
-        //document.getElementById('EnableMQTT').checked = data.enableMQTT || false;
-
        
         if (data.lanType) {
           document.getElementById('lanDhcp').checked = true;
@@ -1236,7 +2341,7 @@ void handleRoot() {
         document.getElementById('lanGateway').value = data.lanGateway || '';
         document.getElementById('lanDns').value = data.lanDns || '';
 
-        toggleLanInputs(); // เรียกตอนโหลดเพื่ออัปเดต disable
+        toggleLanInputs();
 
         if (data.wlanType) {
           document.getElementById('wlanDhcp').checked = true;
@@ -1254,8 +2359,6 @@ void handleRoot() {
 
         toggleWlanInputs();
 
-      
-
         document.getElementById('serialBaud').value = String(data.serialBaud || '9600');
         document.getElementById('serialDataBits').value = String(data.serialDataBits || '8');
         document.getElementById('serialParity').value = data.serialParity || 'none';
@@ -1263,17 +2366,34 @@ void handleRoot() {
 
         document.getElementById('modbusTcp').checked = data.modbusTcp || false;
         document.getElementById('modbusRtu').checked = data.modbusRtu || false;
-        toggleModbusTcp(); // เพื่อแสดง/ซ่อนตอนโหลด
+        toggleModbusTcp();
         document.getElementById('server_ip').value = data.server_ip || '';
         document.getElementById('server_port').value = data.server_port || '';
-        toggleModbusRTU(); // เพื่อแสดง/ซ่อนตอนโหลด
+        toggleModbusRTU();
         document.getElementById('rtuAddress').value = String(data.rtuAddress || '1');
-	        document.getElementById('canbusMaster').checked = data.canbusMaster || false;
-	        document.getElementById('canbusId').value = data.canbusId || '';
-	        document.getElementById('canbusBaud').value = String(data.canbusBaud || '100');
+        document.getElementById('canbusMaster').checked = data.canbusMaster || false;
+        document.getElementById('canbusId').value = data.canbusId || '';
+        document.getElementById('canbusBaud').value = String(data.canbusBaud || '100');
 
       }
-          // document.getElementById('lanMac').disabled = true;
+      async function refreshSettings() {
+        clearBanner();
+        await loadSettings();
+        showBanner('Configuration reloaded from device storage.', 'success');
+        setTimeout(clearBanner, 2200);
+      }
+      async function logout() {
+        const token = sessionStorage.getItem('esp32_token');
+        try {
+          await fetch('/logout', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+        } catch (error) {
+        }
+        sessionStorage.removeItem('esp32_token');
+        window.location.href = '/login';
+      }
       function toggleLanInputs() {
         const isDhcp = document.getElementById('lanDhcp').checked;
         const fields = ['lanIp', 'lanSubnet', 'lanGateway', 'lanDns'];
@@ -1297,44 +2417,28 @@ void handleRoot() {
           document.getElementById(id).disabled = !enableMQTT;
         });
       }
-      function toggleDarkMode() {
-        const body = document.body;
-        const isDark = body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
-      }
-
-      function loadDarkMode() {
-        if (localStorage.getItem('darkMode') === 'enabled') {
-          document.body.classList.add('dark-mode');
-        }
-      }
       function toggleModbusTcp() {
         const show = document.getElementById('modbusTcp').checked;
         document.getElementById('tcpClientSection').style.display = show ? 'table' : 'none';
       }
-	      function toggleModbusRTU() {
-	        const show = document.getElementById('modbusRtu').checked;
-	        const rtuMasterSection = document.getElementById('rtuMasterSection');
-	        if (rtuMasterSection) {
-	          rtuMasterSection.style.display = show ? 'table' : 'none';
-	        }
-	      }
+      function toggleModbusRTU() {
+        const show = document.getElementById('modbusRtu').checked;
+        const rtuMasterSection = document.getElementById('rtuMasterSection');
+        if (rtuMasterSection) {
+          rtuMasterSection.style.display = show ? 'table' : 'none';
+        }
+      }
       window.addEventListener('DOMContentLoaded', () => {
-      if (location.pathname === '/login') return; 
-        loadDarkMode();
+        if (location.pathname === '/login') return;
         loadSettings();
-        
-        toggleEnableMQTT()
+        loadLanRuntime();
+        setInterval(loadLanRuntime, 5000);
+
+        toggleEnableMQTT();
         toggleLanInputs();
         toggleWlanInputs();
         toggleModbusTcp();
         toggleModbusRTU();
-        // document.getElementById('deviceInfoSection').style.display     = safeDisplay(true);
-        // document.getElementById('mqttSection').style.display           = safeDisplay(true);
-        // document.getElementById('lanSection').style.display            = safeDisplay(true);
-        // document.getElementById('wlanSettingsSection').style.display   = safeDisplay(true);
-        // document.getElementById('serialSettingsSection').style.display = safeDisplay(true);
-        // document.getElementById('modbusSettingsSection').style.display = safeDisplay(true);
       });
     </script>
   </body>

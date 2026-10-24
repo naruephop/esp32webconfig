@@ -110,7 +110,7 @@ struct NetworkConfig {
   String subnet;
   String gateway;
   String dns;
-  bool dhcp;
+  bool dhcp = true;
 };
 
 struct WLANConfig {
@@ -121,7 +121,7 @@ struct WLANConfig {
   String subnet;
   String gateway;
   String dns;
-  bool dhcp;
+  bool dhcp = true;
 };
 
 struct CanbusConfig {
@@ -159,6 +159,7 @@ void handleLoginForm();
 void handleLogin();
 void handleLogout();
 void handleLoad();
+void handleNetworkStatus();
 void handleSave();
 void handleUpdate();
 void handleUpdateForm();
