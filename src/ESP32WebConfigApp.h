@@ -216,6 +216,8 @@ private:
     server.on("/file-manager", HTTP_GET, handleFileManager);
     server.on("/file-list", HTTP_GET, handleFileList);
     server.on("/download-file", HTTP_GET, handleDownloadFile);
+    server.on("/edit-file", HTTP_GET, handleEditFile);
+    server.on("/save-file", HTTP_POST, handleSaveFile);
     server.on("/delete-file", HTTP_GET, handleDeleteFile);
     server.on("/upload", HTTP_GET, handleFileUploadPage);
     server.on("/upload", HTTP_POST, []() {}, handleFileUpload);

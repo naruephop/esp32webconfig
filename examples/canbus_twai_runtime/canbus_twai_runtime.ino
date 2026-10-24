@@ -5,7 +5,24 @@
  * Adjust TX/RX pins to match your transceiver wiring.
  */
 
+// Portal features used by this example.
 #define ESP32WC_FEATURE_CONFIG_BUTTON 0
+#define ESP32WC_FEATURE_STATUS_LED 1
+#define ESP32WC_FEATURE_SERIAL_LOG 1
+#define ESP32WC_FEATURE_PRINT_CONFIG 0
+#define ESP32WC_FEATURE_FILE_MANAGER 0
+#define ESP32WC_FEATURE_SPIFFS_UPDATE 0
+#define ESP32WC_FEATURE_WIFI_SCAN 1
+#define ESP32WC_FEATURE_OTA 0
+
+// Keep only the CAN Bus configuration page plus Wi-Fi portal settings.
+#define ESP32WC_SECTION_DEVICE_INFO 1
+#define ESP32WC_SECTION_MQTT 0
+#define ESP32WC_SECTION_LAN 0
+#define ESP32WC_SECTION_WLAN 1
+#define ESP32WC_SECTION_SERIAL 0
+#define ESP32WC_SECTION_MODBUS 0
+#define ESP32WC_SECTION_CANBUS 1
 
 #include <ESP32WebConfigApp.h>
 #include <driver/twai.h>

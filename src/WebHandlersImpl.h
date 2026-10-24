@@ -759,7 +759,11 @@ void handleSpiffsUpdate() {
 #if ESP32WC_FEATURE_FILE_MANAGER
 void handleFileManager() {
   if (!requireConfigPortalPage()) return;
-  server.send(200, "text/html", R"rawliteral(<!DOCTYPE html><html><head><title>File Manager</title><style>body{font-family:Arial;margin:20px;}table{margin:20px auto;border-collapse:collapse;width:80%;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#007bff;color:white;}button{background-color:#dc3545;color:white;border:none;padding:5px 10px;cursor:pointer;}button:hover{background-color:#c82333;}</style></head><body><h2>File Manager</h2><table><thead><tr><th>Filename</th><th>Size</th><th>Actions</th></tr></thead><tbody id="fileTable"></tbody></table><form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data"><input type="file" name="file"><button type="submit">Upload</button></form><script>const token = sessionStorage.getItem("esp32_token"); if (!token) window.location.href = "/login"; else { document.getElementById("uploadForm").action = "/upload?token=" + encodeURIComponent(token); fetchFiles(); }async function fetchFiles() { const response = await fetch('/file-list', {headers: {'Authorization': 'Bearer ' + token}}); if (!response.ok) return; const files = await response.json(); const table = document.getElementById('fileTable'); table.innerHTML = files.map(file => `<tr><td>${file.name}</td><td>${file.size}</td><td><button onclick="deleteFile('${file.name}')">Delete</button></td></tr>`).join(''); }async function deleteFile(filename) { if (!confirm(`Delete ${filename}?`)) return; const response = await fetch(`/delete-file?filename=${encodeURIComponent(filename)}`, {method: 'GET', headers: {'Authorization': 'Bearer ' + token}}); alert(await response.text()); fetchFiles(); }</script></body></html>)rawliteral");
+  server.send(200, "text/html", R"rawliteral(<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>File Manager</title>
+<style>body{font-family:Arial,sans-serif;background:#f4f7fb;color:#1f2937;margin:0;padding:24px}.panel{max-width:820px;margin:auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 10px 28px #1f29371a}h2{margin-top:0}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{border-bottom:1px solid #e5e7eb;padding:12px;text-align:left}th{color:#475569}.actions{display:flex;gap:8px}button{border:0;border-radius:8px;padding:8px 12px;color:#fff;cursor:pointer}.download{background:#1677ff}.edit{background:#7c3aed}.delete{background:#dc3545}.upload,.save{background:#16a34a;margin-left:8px}input[type=file]{max-width:240px}dialog{border:0;border-radius:14px;width:min(760px,calc(100vw - 32px));box-shadow:0 16px 48px #1f293744}dialog::backdrop{background:#0f172a88}textarea{box-sizing:border-box;width:100%;min-height:360px;margin:12px 0;padding:12px;font-family:ui-monospace,monospace;font-size:14px;border:1px solid #cbd5e1;border-radius:8px}.dialog-actions{display:flex;justify-content:flex-end;gap:8px}.cancel{background:#64748b}</style></head>
+<body><main class="panel"><h2>File Manager</h2><table><thead><tr><th>Filename</th><th>Size</th><th>Actions</th></tr></thead><tbody id="fileTable"></tbody></table><form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data"><input type="file" name="file"><button class="upload" type="submit">Upload</button></form></main><dialog id="editor"><h3 id="editTitle">Edit file</h3><textarea id="fileContent" spellcheck="false"></textarea><div class="dialog-actions"><button class="cancel" type="button" onclick="closeEditor()">Cancel</button><button class="save" type="button" onclick="saveFile()">Save</button></div></dialog>
+<script>const token=sessionStorage.getItem('esp32_token');let editingFilename='';if(!token){window.location.href='/login';}else{document.getElementById('uploadForm').action='/upload?token='+encodeURIComponent(token);fetchFiles();}function isEditable(filename){return /\.(json|txt|csv|ini|cfg|log|html|htm|css|js|md)$/i.test(filename);}async function fetchFiles(){const response=await fetch('/file-list',{headers:{Authorization:'Bearer '+token}});if(!response.ok)return;const files=await response.json();const table=document.getElementById('fileTable');table.textContent='';files.forEach(file=>{const row=document.createElement('tr');const name=document.createElement('td');name.textContent=file.name;const size=document.createElement('td');size.textContent=file.size;const actions=document.createElement('td');actions.className='actions';const download=document.createElement('button');download.className='download';download.textContent='Download';download.onclick=()=>downloadFile(file.name);actions.append(download);if(isEditable(file.name)){const edit=document.createElement('button');edit.className='edit';edit.textContent='Edit';edit.onclick=()=>editFile(file.name);actions.append(edit);}const remove=document.createElement('button');remove.className='delete';remove.textContent='Delete';remove.onclick=()=>deleteFile(file.name);actions.append(remove);row.append(name,size,actions);table.append(row);});}function downloadFile(filename){window.location.href='/download-file?filename='+encodeURIComponent(filename)+'&token='+encodeURIComponent(token);}async function editFile(filename){const response=await fetch('/edit-file?filename='+encodeURIComponent(filename),{headers:{Authorization:'Bearer '+token}});if(!response.ok){alert(await response.text());return;}editingFilename=filename;document.getElementById('editTitle').textContent='Edit '+filename;document.getElementById('fileContent').value=await response.text();document.getElementById('editor').showModal();}function closeEditor(){document.getElementById('editor').close();}async function saveFile(){const response=await fetch('/save-file',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({filename:editingFilename,content:document.getElementById('fileContent').value})});if(!response.ok){alert(await response.text());return;}closeEditor();alert('Saved');fetchFiles();}async function deleteFile(filename){if(!confirm('Delete '+filename+'?'))return;const response=await fetch('/delete-file?filename='+encodeURIComponent(filename),{headers:{Authorization:'Bearer '+token}});alert(await response.text());fetchFiles();}</script></body></html>)rawliteral");
 }
 
 void handleFileList() {
@@ -785,7 +789,8 @@ void handleDeleteFile() {
     return;
   }
   
-  String filename = "/" + server.arg("filename");
+  String filename = server.arg("filename");
+  if (!filename.startsWith("/")) filename = "/" + filename;
   if (filename.indexOf("..") != -1 || !SPIFFS.exists(filename)) {
     server.send(400, "text/plain", "Invalid filename");
     return;
@@ -806,7 +811,8 @@ void handleDownloadFile() {
     return;
   }
   
-  String filename = "/" + server.arg("filename");
+  String filename = server.arg("filename");
+  if (!filename.startsWith("/")) filename = "/" + filename;
   if (filename.indexOf("..") != -1 || !SPIFFS.exists(filename)) {
     server.send(404, "text/plain", "File not found");
     return;
@@ -818,9 +824,90 @@ void handleDownloadFile() {
     return;
   }
   
-  server.sendHeader("Content-Disposition", "attachment; filename=\"" + filename.substring(1) + "\"");
+  String downloadName = filename.substring(filename.lastIndexOf('/') + 1);
+  downloadName.replace("\"", "_");
+  downloadName.replace("\r", "_");
+  downloadName.replace("\n", "_");
+  server.sendHeader("Content-Disposition", "attachment; filename=\"" + downloadName + "\"");
   server.streamFile(file, "application/octet-stream");
   file.close();
+}
+
+constexpr size_t ESP32WC_FILE_EDITOR_MAX_BYTES = 8192;
+
+bool isEditableFileName(const String &filename) {
+  String lowerName = filename;
+  lowerName.toLowerCase();
+  return lowerName.endsWith(".json") || lowerName.endsWith(".txt") ||
+         lowerName.endsWith(".csv") || lowerName.endsWith(".ini") ||
+         lowerName.endsWith(".cfg") || lowerName.endsWith(".log") ||
+         lowerName.endsWith(".html") || lowerName.endsWith(".htm") ||
+         lowerName.endsWith(".css") || lowerName.endsWith(".js") ||
+         lowerName.endsWith(".md");
+}
+
+void handleEditFile() {
+  if (!requireConfigPortalText() || !requireAuthorizationText()) return;
+  if (!server.hasArg("filename")) {
+    server.send(400, "text/plain", "No filename");
+    return;
+  }
+
+  String filename = server.arg("filename");
+  if (!filename.startsWith("/")) filename = "/" + filename;
+  if (filename.indexOf("..") != -1 || !isEditableFileName(filename) || !SPIFFS.exists(filename)) {
+    server.send(400, "text/plain", "Invalid or non-editable filename");
+    return;
+  }
+
+  File file = SPIFFS.open(filename, FILE_READ);
+  if (!file) {
+    server.send(500, "text/plain", "Open failed");
+    return;
+  }
+  if (file.size() > ESP32WC_FILE_EDITOR_MAX_BYTES) {
+    file.close();
+    server.send(413, "text/plain", "File is too large to edit (max 8192 bytes)");
+    return;
+  }
+
+  server.streamFile(file, "text/plain; charset=utf-8");
+  file.close();
+}
+
+void handleSaveFile() {
+  if (!requireConfigPortalText() || !requireAuthorizationText()) return;
+  if (!server.hasArg("plain")) {
+    server.send(400, "text/plain", "Invalid request");
+    return;
+  }
+
+  DynamicJsonDocument doc(ESP32WC_FILE_EDITOR_MAX_BYTES + 1024);
+  if (deserializeJson(doc, server.arg("plain"))) {
+    server.send(400, "text/plain", "Invalid JSON");
+    return;
+  }
+
+  String filename = doc["filename"] | "";
+  String content = doc["content"] | "";
+  if (!filename.startsWith("/")) filename = "/" + filename;
+  if (filename.indexOf("..") != -1 || !isEditableFileName(filename) || !SPIFFS.exists(filename)) {
+    server.send(400, "text/plain", "Invalid or non-editable filename");
+    return;
+  }
+  if (content.length() > ESP32WC_FILE_EDITOR_MAX_BYTES) {
+    server.send(413, "text/plain", "Content is too large (max 8192 bytes)");
+    return;
+  }
+
+  File file = SPIFFS.open(filename, FILE_WRITE);
+  if (!file) {
+    server.send(500, "text/plain", "Open failed");
+    return;
+  }
+  const size_t written = file.write(reinterpret_cast<const uint8_t *>(content.c_str()), content.length());
+  file.close();
+  server.send(written == content.length() ? 200 : 500, "text/plain", written == content.length() ? "Saved" : "Save failed");
 }
 
 void handleFileUploadPage() {

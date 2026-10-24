@@ -4,6 +4,24 @@
  * Use this when your board wiring is different from the defaults.
  */
 
+// This sketch uses the physical configuration button and status LED below.
+#define ESP32WC_FEATURE_CONFIG_BUTTON 1
+#define ESP32WC_FEATURE_STATUS_LED 1
+#define ESP32WC_FEATURE_SERIAL_LOG 1
+#define ESP32WC_FEATURE_PRINT_CONFIG 0
+#define ESP32WC_FEATURE_FILE_MANAGER 0
+#define ESP32WC_FEATURE_SPIFFS_UPDATE 0
+#define ESP32WC_FEATURE_WIFI_SCAN 1
+#define ESP32WC_FEATURE_OTA 0
+
+#define ESP32WC_SECTION_DEVICE_INFO 1
+#define ESP32WC_SECTION_MQTT 0
+#define ESP32WC_SECTION_LAN 0
+#define ESP32WC_SECTION_WLAN 1
+#define ESP32WC_SECTION_SERIAL 0
+#define ESP32WC_SECTION_MODBUS 0
+#define ESP32WC_SECTION_CANBUS 0
+
 #include <ESP32WebConfigApp.h>
 
 ESP32WebConfigAppSettings settings;

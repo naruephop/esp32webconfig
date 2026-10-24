@@ -20,6 +20,8 @@ void handleSpiffsUpdate();
 void handleFileManager();
 void handleFileList();
 void handleDownloadFile();
+void handleEditFile();
+void handleSaveFile();
 void handleDeleteFile();
 void handleFileUploadPage();
 void handleFileUpload();
