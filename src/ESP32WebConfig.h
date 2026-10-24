@@ -71,6 +71,10 @@ extern const char* PASSWORD;
 extern const char* devicename;
 extern const char* deviceversion;
 
+#ifndef ESP32WC_MODBUS_TCP_MAX_REGISTERS
+#define ESP32WC_MODBUS_TCP_MAX_REGISTERS 16
+#endif
+
 // ===== Configuration Structures =====
 struct MQTTConfig {
   char server[40] = "";
@@ -95,6 +99,10 @@ struct ModbusConfig {
   bool tcpClient = false;
   char server_ip[20] = "";
   int server_port = 502;
+  int tcpUnitId = 1;
+  uint16_t tcpStartRegister = 0;
+  uint8_t tcpRegisterCount = 2;
+  unsigned long tcpPollIntervalMs = 1000;
   bool rtuMaster = false;
   int rtuAddress = 1;
 };

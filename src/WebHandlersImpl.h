@@ -417,6 +417,10 @@ void handleLoad() {
   doc["rtuAddress"] = Config.modbus.rtuAddress;
   doc["server_ip"] = Config.modbus.server_ip;
   doc["server_port"] = Config.modbus.server_port;
+  doc["tcpUnitId"] = Config.modbus.tcpUnitId;
+  doc["tcpStartRegister"] = Config.modbus.tcpStartRegister;
+  doc["tcpRegisterCount"] = Config.modbus.tcpRegisterCount;
+  doc["tcpPollIntervalMs"] = Config.modbus.tcpPollIntervalMs;
 #endif
 #if ESP32WC_SECTION_CANBUS
   doc["canbusMaster"] = Config.canbus.canbusMaster;
@@ -503,7 +507,15 @@ void handleSave() {
     Config.modbus.rtuAddress = doc["rtuAddress"].as<int>();
     if (Config.modbus.rtuAddress <= 0) Config.modbus.rtuAddress = 1;
     strlcpy(Config.modbus.server_ip, doc["server_ip"] | "", sizeof(Config.modbus.server_ip));
-    Config.modbus.server_port = doc["server_port"].as<int>() | 502;
+    Config.modbus.server_port = doc["server_port"] | 502;
+    if (Config.modbus.server_port < 1 || Config.modbus.server_port > 65535) Config.modbus.server_port = 502;
+    Config.modbus.tcpUnitId = doc["tcpUnitId"] | 1;
+    if (Config.modbus.tcpUnitId < 1 || Config.modbus.tcpUnitId > 247) Config.modbus.tcpUnitId = 1;
+    Config.modbus.tcpStartRegister = doc["tcpStartRegister"] | 0;
+    Config.modbus.tcpRegisterCount = doc["tcpRegisterCount"] | 2;
+    if (Config.modbus.tcpRegisterCount < 1 || Config.modbus.tcpRegisterCount > ESP32WC_MODBUS_TCP_MAX_REGISTERS) Config.modbus.tcpRegisterCount = 2;
+    Config.modbus.tcpPollIntervalMs = doc["tcpPollIntervalMs"] | 1000UL;
+    if (Config.modbus.tcpPollIntervalMs < 100) Config.modbus.tcpPollIntervalMs = 100;
 #endif
 #if ESP32WC_SECTION_CANBUS
   Config.canbus.canbusMaster = doc["canbusMaster"] | false;
@@ -564,6 +576,10 @@ void saveSettings(bool restart) {
   doc["rtuAddress"] = Config.modbus.rtuAddress;
   doc["server_ip"] = Config.modbus.server_ip;
   doc["server_port"] = Config.modbus.server_port;
+  doc["tcpUnitId"] = Config.modbus.tcpUnitId;
+  doc["tcpStartRegister"] = Config.modbus.tcpStartRegister;
+  doc["tcpRegisterCount"] = Config.modbus.tcpRegisterCount;
+  doc["tcpPollIntervalMs"] = Config.modbus.tcpPollIntervalMs;
 #endif
 #if ESP32WC_SECTION_CANBUS
   doc["canbusMaster"] = Config.canbus.canbusMaster;
@@ -656,6 +672,14 @@ void loadSettings() {
   if (Config.modbus.rtuAddress <= 0) Config.modbus.rtuAddress = 1;
   strlcpy(Config.modbus.server_ip, doc["server_ip"] | "", sizeof(Config.modbus.server_ip));
   Config.modbus.server_port = doc["server_port"] | 502;
+  if (Config.modbus.server_port < 1 || Config.modbus.server_port > 65535) Config.modbus.server_port = 502;
+  Config.modbus.tcpUnitId = doc["tcpUnitId"] | 1;
+  if (Config.modbus.tcpUnitId < 1 || Config.modbus.tcpUnitId > 247) Config.modbus.tcpUnitId = 1;
+  Config.modbus.tcpStartRegister = doc["tcpStartRegister"] | 0;
+  Config.modbus.tcpRegisterCount = doc["tcpRegisterCount"] | 2;
+  if (Config.modbus.tcpRegisterCount < 1 || Config.modbus.tcpRegisterCount > ESP32WC_MODBUS_TCP_MAX_REGISTERS) Config.modbus.tcpRegisterCount = 2;
+  Config.modbus.tcpPollIntervalMs = doc["tcpPollIntervalMs"] | 1000UL;
+  if (Config.modbus.tcpPollIntervalMs < 100) Config.modbus.tcpPollIntervalMs = 100;
 #endif
 #if ESP32WC_SECTION_CANBUS
   Config.canbus.canbusMaster = doc["canbusMaster"] | false;
@@ -2023,7 +2047,19 @@ void handleRoot() {
             <td><label>Server IP</label></td>
             <td><input type="text" id="server_ip" placeholder="Server IP"></td>
             <td><label>Server Port</label></td>
-            <td><input type="number" id="server_port" placeholder="Server Port"></td>
+            <td><input type="number" id="server_port" placeholder="502" min="1" max="65535"></td>
+          </tr>
+          <tr>
+            <td><label>Unit ID</label></td>
+            <td><input type="number" id="tcpUnitId" placeholder="1" min="1" max="247"></td>
+            <td><label>Start Register</label></td>
+            <td><input type="number" id="tcpStartRegister" placeholder="0" min="0" max="65535"></td>
+          </tr>
+          <tr>
+            <td><label>Register Count</label></td>
+            <td><input type="number" id="tcpRegisterCount" placeholder="2" min="1" max="16"></td>
+            <td><label>Poll Interval (ms)</label></td>
+            <td><input type="number" id="tcpPollIntervalMs" placeholder="1000" min="100" step="100"></td>
           </tr>
         </table>
 	        <table id="rtuMasterSection" style="display:none;">
@@ -2191,6 +2227,10 @@ void handleRoot() {
           enableMQTT: document.getElementById('EnableMQTT').checked,
           server_ip: document.getElementById('server_ip').value,
           server_port: document.getElementById('server_port').value,
+          tcpUnitId: document.getElementById('tcpUnitId').value,
+          tcpStartRegister: document.getElementById('tcpStartRegister').value,
+          tcpRegisterCount: document.getElementById('tcpRegisterCount').value,
+          tcpPollIntervalMs: document.getElementById('tcpPollIntervalMs').value,
           rtuAddress: document.getElementById('rtuAddress').value,
 
           lanType: document.getElementById('lanDhcp').checked ? true : false,
@@ -2369,6 +2409,10 @@ void handleRoot() {
         toggleModbusTcp();
         document.getElementById('server_ip').value = data.server_ip || '';
         document.getElementById('server_port').value = data.server_port || '';
+        document.getElementById('tcpUnitId').value = String(data.tcpUnitId || '1');
+        document.getElementById('tcpStartRegister').value = String(data.tcpStartRegister || '0');
+        document.getElementById('tcpRegisterCount').value = String(data.tcpRegisterCount || '2');
+        document.getElementById('tcpPollIntervalMs').value = String(data.tcpPollIntervalMs || '1000');
         toggleModbusRTU();
         document.getElementById('rtuAddress').value = String(data.rtuAddress || '1');
         document.getElementById('canbusMaster').checked = data.canbusMaster || false;

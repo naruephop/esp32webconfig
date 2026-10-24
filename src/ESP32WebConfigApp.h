@@ -12,6 +12,7 @@
 #include "WebHandlers.h"
 #include "WebHandlersImpl.h"
 #include "NetworkConfig.h"
+#include "ModbusTcpRuntime.h"
 
 inline const char* apSSID = "ESP32_MQTT_Config";
 inline const char* apPassword = "12345678";
@@ -109,6 +110,7 @@ public:
     handleConfigButton();
     updateStatusLed();
     ::network_switching();
+    ::modbusTcpRuntimeLoop();
 
 #if ESP32WC_FEATURE_PRINT_CONFIG
     if (now - lastPrintConfigMs_ >= settings_.printConfigIntervalMs) {

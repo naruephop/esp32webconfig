@@ -153,6 +153,27 @@ LAN8720 รองรับเฉพาะ ESP32 target ที่มี RMII EMAC
 
 ปรับได้ด้วย `ESP32WC_ETH_PHY_TYPE`, `ESP32WC_ETH_PHY_ADDR`, `ESP32WC_ETH_MDC_PIN`, `ESP32WC_ETH_MDIO_PIN`, `ESP32WC_ETH_POWER_PIN` และ `ESP32WC_ETH_CLOCK_MODE`
 
+## Modbus TCP runtime
+
+Modbus TCP client อยู่ใน `src/ModbusTcpRuntime.h` และทำงานอัตโนมัติเมื่อเปิด `TCP Client` ในหน้าเว็บ ไม่ต้องเพิ่ม loop สำหรับ Modbus ใน sketch ของคุณ
+
+- เลือก Ethernet ก่อนเมื่อ `ETH.hasIP()` เป็นจริง
+- fallback ไป Wi‑Fi เมื่อ LAN ยังไม่พร้อม
+- อ่าน Holding Registers ด้วย function code `0x03`
+- ตั้งค่า Server IP/Port, Unit ID, Start Register, จำนวน registers และช่วง poll ได้จากหน้าเว็บ
+- ค่าเริ่มต้น: Unit ID `1`, start register `0`, จำนวน `2` registers และ poll ทุก `1000 ms`
+
+ค่าจากรอบที่อ่านสำเร็จล่าสุดนำไปใช้ใน sketch ได้ทันที โดย index `0` คือ start register ที่ตั้งไว้:
+
+```cpp
+uint16_t value;
+if (modbusTcpReadRegister(0, value)) {
+  // ใช้งาน value ได้ที่นี่
+}
+```
+
+ใช้ `modbusTcpHasData()` เพื่อตรวจสอบว่ามีข้อมูลหรือไม่ และ `modbusTcpRegisterCount()` เพื่อดูจำนวนค่าที่พร้อมใช้งาน โดยกำหนดจำนวน register ได้สูงสุด `16` ค่า (เปลี่ยนได้ด้วย `ESP32WC_MODBUS_TCP_MAX_REGISTERS` ก่อน include `ESP32WebConfigApp.h`)
+
 ## Feature flags
 
 กำหนดก่อน include `ESP32WebConfigApp.h`
@@ -203,7 +224,7 @@ LAN8720 รองรับเฉพาะ ESP32 target ที่มี RMII EMAC
 | [mqtt_serial_focus](examples/mqtt_serial_focus/mqtt_serial_focus.ino) | MQTT, Wi‑Fi, Serial และ Modbus |
 | [serial_runtime](examples/serial_runtime/serial_runtime.ino) | ใช้ Serial2 ตามค่าบนเว็บ |
 | [modbus_rtu_runtime](examples/modbus_rtu_runtime/modbus_rtu_runtime.ino) | Modbus RTU ผ่าน RS485 |
-| [modbus_tcp_runtime](examples/modbus_tcp_runtime/modbus_tcp_runtime.ino) | Modbus TCP |
+| [modbus_tcp_runtime](examples/modbus_tcp_runtime/modbus_tcp_runtime.ino) | Modbus TCP โดยใช้ LAN ก่อน แล้ว fallback ไป Wi‑Fi |
 | [canbus_twai_runtime](examples/canbus_twai_runtime/canbus_twai_runtime.ino) | CAN Bus/TWAI |
 
 ## โครงสร้างข้อมูล
